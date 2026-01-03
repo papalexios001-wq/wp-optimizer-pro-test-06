@@ -2,11 +2,8 @@
 // Enterprise-Grade Contextual Anchor Text & Linking Logic
 // Implements SOTA AI-driven internal linking with semantic analysis
 
-import { SeometricMetrics } from './seometric-metrics';
-
 // Advanced Anchor Text Pattern Library - SOTA Quality
 export const ADVANCED_ANCHOR_PATTERNS = {
-  // Problem-Solution Anchors
   problemSolution: [
     'solves the issue of',
     'resolves the problem with',
@@ -17,7 +14,6 @@ export const ADVANCED_ANCHOR_PATTERNS = {
     'provides a solution to',
   ],
   
-  // Educational Anchors
   educational: [
     'learn more about',
     'understand the fundamentals of',
@@ -28,7 +24,6 @@ export const ADVANCED_ANCHOR_PATTERNS = {
     'advanced techniques for',
   ],
   
-  // Authority & Trust
   authorityBuilding: [
     'industry-leading approach to',
     'expert insight into',
@@ -39,7 +34,6 @@ export const ADVANCED_ANCHOR_PATTERNS = {
     'award-winning approach to',
   ],
   
-  // Semantic Relationships
   semanticRelated: [
     'closely related to',
     'integral to understanding',
@@ -50,7 +44,6 @@ export const ADVANCED_ANCHOR_PATTERNS = {
     'extends the discussion of',
   ],
   
-  // Action-Oriented
   actionOriented: [
     'step-by-step tutorial on',
     'hands-on guide to',
@@ -61,7 +54,6 @@ export const ADVANCED_ANCHOR_PATTERNS = {
     'proven tactics for',
   ],
   
-  // Comparative
   comparative: [
     'compare with our analysis of',
     'similar to our examination of',
@@ -74,8 +66,6 @@ export const ADVANCED_ANCHOR_PATTERNS = {
 
 // Link Relevance Scoring Engine
 export class LinkRelevanceEngine {
-  private seometricAnalyzer = new SeometricMetrics();
-  
   // Calculate contextual relevance between source and target
   calculateContextualRelevance(
     sourceContent: string,
@@ -148,43 +138,30 @@ export class LinkRelevanceEngine {
   
   // Extract key terms from content
   private extractKeyTerms(content: string): string[] {
-    return content
-      .toLowerCase()
-      .match(/\b[a-z]{4,}\b/g)?
-      .filter((term, index, self) => self.indexOf(term) === index)
-      .slice(0, 50) || [];
+    const words = content.toLowerCase().split(/\s+/);
+    const filtered = words.filter(w => w.length > 3);
+    return filtered.filter((v, i, a) => a.indexOf(v) === i).slice(0, 50);
   }
   
   // Extract named entities (topics, keywords)
   private extractEntities(content: string): Array<{ type: string; value: string }> {
-    const entities = [];
-    
-    // Capital case terms (proper nouns)
-    const properNouns = content.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+    const entities: Array<{ type: string; value: string }> = [];
+    const properNouns = content.match(/[A-Z][a-z]+/g) || [];
     entities.push(...properNouns.map(noun => ({ type: 'PROPER_NOUN', value: noun })));
-    
-    // Domain-specific terms
-    const technicalTerms = content.match(/\b(?:SEO|AI|ML|API|CMS|PHP|HTML|CSS|JavaScript|TypeScript|React|Vue|Angular)\b/gi) || [];
-    entities.push(...technicalTerms.map(term => ({ type: 'TECHNICAL', value: term })));
-    
     return entities;
   }
   
   // Calculate anchor text quality
   private calculateAnchorQuality(anchor: string): number {
     let score = 0;
-    
-    // Length quality (optimal 4-7 words)
     const words = anchor.trim().split(/\s+/).length;
     score += Math.min(100, (words / 5) * 100) * 0.4;
     
-    // Relevance to SOTA patterns
     const isSOTA = Object.values(ADVANCED_ANCHOR_PATTERNS).some(patterns =>
       patterns.some(p => anchor.toLowerCase().includes(p.toLowerCase()))
     );
     score += isSOTA ? 60 : 30;
     
-    // No keyword stuffing
     const keywordDensity = this.calculateKeywordDensity(anchor);
     score += Math.max(0, 100 - (keywordDensity * 10));
     
@@ -202,7 +179,6 @@ export class LinkRelevanceEngine {
   private calculateDepthMatch(source: string, target: string): number {
     const sourceDepth = this.measureContentDepth(source);
     const targetDepth = this.measureContentDepth(target);
-    
     const depthDifference = Math.abs(sourceDepth - targetDepth);
     return Math.max(0, 100 - (depthDifference * 10));
   }
@@ -210,29 +186,26 @@ export class LinkRelevanceEngine {
   // Measure content depth (word count, section count, etc.)
   private measureContentDepth(content: string): number {
     const wordCount = content.split(/\s+/).length;
-    const sectionCount = (content.match(/###|<h[2-6]/g) || []).length;
-    const listCount = (content.match(/^\s*[-*]/m) || []).length;
-    
+    const sectionCount = (content.match(/#{2,6}/g) || []).length;
+    const listCount = (content.match(/[-*]/g) || []).length;
     return (wordCount / 100) + (sectionCount * 10) + (listCount * 5);
   }
 }
 
 // Smart Link Placement Strategy
 export class SmartLinkPlacement {
-  // Determine optimal placement within content
   static calculateOptimalPlacement(
     content: string,
     linkTargetTopics: string[]
   ): number[] {
     const sentences = content.split(/[.!?]+/);
-    const placements = [];
+    const placements: Array<{ sentenceIndex: number; score: number }> = [];
     
     sentences.forEach((sentence, index) => {
       const relevanceScore = linkTargetTopics.some(topic =>
         sentence.toLowerCase().includes(topic.toLowerCase())
       ) ? 100 : 0;
       
-      // Prefer positions: 30%, 60%, 90% through content
       const positionWeight = this.calculatePositionWeight(index, sentences.length);
       
       placements.push({
