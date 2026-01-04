@@ -1891,26 +1891,6 @@ export function getAllQARules(): QARuleDefinition[] {
     return [...QA_RULES];
 }
 
-    formatNumber,
-    sleep,
-    generateId,
-    deepClone,
-    isEmpty,
-    truncate,
-    stripHtml,
-    escapeHtml,
-    isValidUrl,
-    getDomain,
-    debounce,
-    throttle,
-    STOP_WORDS,
-    BANNED_SINGLE_WORDS,
-    BANNED_PHRASE_REGEXES,
-    ANCHOR_CONFIG,
-    DEFAULT_THRESHOLDS,
-    UTILS_VERSION,
-    SCORE_ALGORITHM_VERSION
-        };
 
     // ═══════════════════════════════════════════════════════════════════════════════
 // 🚀 SOTA BLOG QUALITY ENHANCEMENTS v30.0
