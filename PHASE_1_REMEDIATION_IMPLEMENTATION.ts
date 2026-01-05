@@ -225,8 +225,7 @@ export const PHASE_1_STATUS: Phase1RemediationStatus = {
 };
 
 export default {
-  :53
-    _REPLACEMENTS,
+  SEMANTIC_LINK_REPLACEMENTS,
   EXPANDED_FAQ_TEMPLATES,
   generatePhase1SchemaMarkup,
   VIDEO_INTEGRATION,
