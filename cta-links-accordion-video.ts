@@ -217,5 +217,5 @@ export async function integrateYouTubeVideoIntoContent(
   }
 }
 
-270
-{ createCTABox, createEnterpriseAccordion, generateEnterpriseSchema, searchYouTubeVideoSerper, createYouTubeEmbed }; integrateYouTubeVideoIntoContent,
+export {
+ createCTABox, createEnterpriseAccordion, generateEnterpriseSchema, searchYouTubeVideoSerper, createYouTubeEmbed }; integrateYouTubeVideoIntoContent,
