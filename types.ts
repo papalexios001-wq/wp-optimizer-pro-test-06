@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// WP OPTIMIZER PRO — COMPLETE TYPE DEFINITIONS (MATCHING EXISTING CODEBASE)
+// WP OPTIMIZER PRO — COMPLETE TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const APP_VERSION = "22.15.0";
@@ -9,8 +9,8 @@ export const APP_VERSION = "22.15.0";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type Provider = 'google' | 'openrouter' | 'anthropic' | 'openai' | 'groq';
-export type OptimizationMode = 'surgical' | 'writer' | 'hybrid';
-export type PublishMode = 'draft' | 'publish' | 'pending';
+export type OptimizationMode = 'surgical' | 'writer' | 'hybrid' | 'full_rewrite';
+export type PublishMode = 'draft' | 'publish' | 'pending' | 'autopublish';
 
 export interface FAQ {
     question: string;
@@ -36,11 +36,23 @@ export interface Toast {
     duration?: number;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// WORDPRESS CONFIG — ALL PROPERTIES USED IN APP.TSX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export interface WpConfig {
     siteUrl: string;
+    url: string;
     username: string;
+    password: string;
     applicationPassword: string;
     restEndpoint?: string;
+    orgName: string;
+    authorName: string;
+    logoUrl?: string;
+    authorPageUrl?: string;
+    industry?: string;
+    targetAudience?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -75,6 +87,7 @@ export interface GeoTargetConfig {
     localKeywords?: string[];
     currencySymbol?: string;
     measurementSystem?: 'metric' | 'imperial';
+    serviceAreas?: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -158,15 +171,18 @@ export type GodModePhase =
     | 'publishing'
     | 'completed'
     | 'failed'
-    | 'error';
+    | 'error'
+    | 'collect_intel'
+    | 'running';
 
 export interface GodModeJobState {
     id: string;
     targetId: string;
     phase: GodModePhase;
-    status: 'idle' | 'processing' | 'completed' | 'failed' | 'queued' | 'analyzing' | 'analyzed' | 'error';
+    status: 'idle' | 'processing' | 'completed' | 'failed' | 'queued' | 'analyzing' | 'analyzed' | 'error' | 'running';
     progress: number;
     logs: string[];
+    log: string[];
     startTime: number;
     endTime?: number;
     error?: string;
@@ -179,6 +195,9 @@ export interface GodModeJobState {
     contract?: ContentContract;
     qaResults?: QAValidationResult[];
     allFeedback?: string[];
+    attempts?: number;
+    processingTime?: number;
+    lastUpdated?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -258,7 +277,7 @@ export interface SitemapPage {
     wordCount: number | null;
     crawledContent: string | null;
     healthScore: number | null;
-    status: 'idle' | 'processing' | 'completed' | 'failed' | 'queued' | 'analyzing' | 'analyzed' | 'error';
+    status: 'idle' | 'processing' | 'completed' | 'failed' | 'queued' | 'analyzing' | 'analyzed' | 'error' | 'running';
     opportunity: OpportunityScore;
     improvementHistory: ImprovementHistoryEntry[];
     jobState?: GodModeJobState;
@@ -385,6 +404,8 @@ export interface CompetitorAnalysis {
     headings: string[];
     entities: string[];
     score?: number;
+    snippet?: string;
+    domain?: string;
 }
 
 export interface EntityGapAnalysis {
@@ -397,6 +418,7 @@ export interface EntityGapAnalysis {
     serpFeatures?: string[];
     validatedReferences?: ValidatedReference[];
     competitors?: CompetitorAnalysis[];
+    competitorUrls?: string[];
     recommendedWordCount?: number;
     avgWordCount?: number;
     featuredSnippetOpportunity?: boolean;
@@ -424,6 +446,7 @@ export interface NeuronTerm {
     recommended: number;
     current?: number;
     count?: number;
+    isUsed?: boolean;
 }
 
 export interface NeuronAnalysisResult {
@@ -432,7 +455,7 @@ export interface NeuronAnalysisResult {
     recommendations?: string[];
     competitorAnalysis?: any;
     contentScore?: number;
-    status?: 'success' | 'error' | 'pending';
+    status?: 'success' | 'error' | 'pending' | 'ready';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -449,8 +472,8 @@ export interface ValidatedReference {
     domain?: string;
     snippet?: string;
     citationCount?: number;
-    trustScore?: number;
-    status?: 'valid' | 'invalid' | 'pending';
+    trustScore?: number | string;
+    status?: 'valid' | 'invalid' | 'pending' | number | string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -528,7 +551,7 @@ export interface GeneratedSection {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// AUTONOMOUS CONFIG, CACHE & LOCKS
+// AUTONOMOUS CONFIG — ALL PROPERTIES USED IN STORE.TS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface AutonomousConfig {
@@ -539,13 +562,22 @@ export interface AutonomousConfig {
     minQualityScore: number;
     maxRetries: number;
     skipOnError: boolean;
+    targetScore: number;
+    maxRetriesPerPage: number;
+    processNewPagesOnly: boolean;
+    prioritizeByOpportunity: boolean;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CACHE & LOCKS — ALL PROPERTIES USED IN STORE.TS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface CacheEntry<T = any> {
     data: T;
     timestamp: number;
     expiresAt: number;
     key: string;
+    ttl: number;
 }
 
 export interface ProcessingLock {
@@ -553,6 +585,7 @@ export interface ProcessingLock {
     lockedAt: number;
     lockedBy: string;
     expiresAt: number;
+    isLocked: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
