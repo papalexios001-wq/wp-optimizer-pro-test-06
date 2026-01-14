@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// WP OPTIMIZER PRO — COMPLETE TYPE DEFINITIONS (ALL PROPERTIES)
+// WP OPTIMIZER PRO — COMPLETE TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const APP_VERSION = "22.15.0";
@@ -37,15 +37,15 @@ export interface Toast {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WORDPRESS CONFIG — ALL PROPERTIES YOUR CODE USES
+// WORDPRESS CONFIG
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface WpConfig {
-    siteUrl: string;
+    siteUrl?: string;
     url: string;
     username: string;
     password: string;
-    applicationPassword: string;
+    applicationPassword?: string;
     restEndpoint?: string;
     orgName: string;
     authorName: string;
@@ -53,7 +53,7 @@ export interface WpConfig {
     authorPageUrl?: string;
     industry?: string;
     targetAudience?: string;
-    defaultCategory?: string;
+    defaultCategory?: string | undefined;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -92,7 +92,7 @@ export interface GeoTargetConfig {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// OPPORTUNITY SCORE — ALL OPTIONAL EXCEPT total AND factors
+// OPPORTUNITY SCORE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface OpportunityScore {
@@ -105,10 +105,12 @@ export interface OpportunityScore {
     contentGap?: number;
     trafficPotential?: number;
     conversionPotential?: number;
+    aeoOpportunity?: number;
+    geoOpportunity?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// IMPROVEMENT HISTORY — ALL PROPERTIES OPTIONAL EXCEPT CORE ONES
+// IMPROVEMENT HISTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface ImprovementHistoryEntry {
@@ -142,6 +144,7 @@ export type GodModePhase =
     | 'entity_gap_analysis'
     | 'neuron_analysis'
     | 'reference_validation'
+    | 'reference_discovery'
     | 'prompt_assembly'
     | 'content_generation'
     | 'content_synthesis'
@@ -184,6 +187,7 @@ export interface GodModeJobState {
     processingTime?: number;
     lastUpdated?: number;
     previousScores?: number[];
+    checkpoints?: any[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -209,7 +213,7 @@ export interface SeoMetrics {
     schemaTypes: string[];
     titleOptimization?: number;
     metaOptimization?: number;
-    readabilityGrade?: string;
+    readabilityGrade?: string | number;
     linkDensity?: number;
     keywordDensity?: number;
     imageOptimization?: number;
@@ -220,6 +224,43 @@ export interface SeoMetrics {
     socialSignals?: number;
     freshness?: number;
     authorityScore?: number;
+    semanticDensity?: number;
+    entityDensity?: number;
+    serpFeatureTargeting?: number;
+    answerEngineVisibility?: number;
+    mobileOptimized?: boolean;
+    powerWordsUsed?: string[];
+    uniquenessScore?: number;
+    topicalAuthority?: number;
+    externalLinkScore?: number;
+}
+
+export function createDefaultSeoMetrics(): SeoMetrics {
+    return {
+        wordCount: 0,
+        readability: 0,
+        contentDepth: 0,
+        headingStructure: 0,
+        aeoScore: 0,
+        geoScore: 0,
+        eeatSignals: 0,
+        internalLinkScore: 0,
+        schemaDetected: false,
+        schemaTypes: [],
+        titleOptimization: 0,
+        metaOptimization: 0,
+        readabilityGrade: 'N/A',
+        linkDensity: 0,
+        keywordDensity: 0,
+        imageOptimization: 0,
+        mobileScore: 0,
+        pageSpeed: 0,
+        coreWebVitals: { lcp: 0, fid: 0, cls: 0 },
+        structuredDataScore: 0,
+        socialSignals: 0,
+        freshness: 0,
+        authorityScore: 0,
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -247,6 +288,7 @@ export interface SitemapPage {
     categories?: string[];
     tags?: string[];
     postId?: number;
+    wpPostId?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -262,21 +304,22 @@ export interface InternalLinkTarget {
     category?: string;
 }
 
-export interface InternalLinkAddedItem {
+export interface InternalLinkResult {
     url: string;
     anchorText: string;
     relevanceScore: number;
-    position: number;
+    position?: number;
+    context?: string;
+    matchType?: string;
+    insertedAt?: number;
 }
 
 export interface InternalLinkInjectionResult {
     html: string;
-    linksAdded: InternalLinkAddedItem[];
+    linksAdded: InternalLinkResult[];
     totalLinks: number;
     skippedReasons?: Map<string, string>;
 }
-
-export type InternalLinkResult = InternalLinkAddedItem;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // QA VALIDATION
@@ -290,7 +333,69 @@ export interface QAValidationResult {
     feedback: string;
     fixSuggestion?: string;
     status: 'passed' | 'warning' | 'failed';
+    details?: any;
+    autoFixed?: boolean;
 }
+
+export interface QASwarmResult {
+    passed: boolean;
+    results: QAValidationResult[];
+    score: number;
+    criticalFailures: number;
+    recommendations: string[];
+    seoScore: number;
+    aeoScore: number;
+    geoScore: number;
+    contentQualityScore: number;
+    scoreBreakdown: ScoreBreakdown;
+    rulesRun: number;
+    rulesPassed: number;
+}
+
+export interface ScoreBreakdown {
+    version: string;
+    timestamp: number;
+    categories: {
+        critical: { score: number; weight: number; checks: number; passed: number };
+        seo: { score: number; weight: number; checks: number; passed: number };
+        aeo: { score: number; weight: number; checks: number; passed: number };
+        geo: { score: number; weight: number; checks: number; passed: number };
+        enhancement: { score: number; weight: number; checks: number; passed: number };
+    };
+    totalScore: number;
+    weightedScore: number;
+    passed: boolean;
+    criticalFailures: number;
+}
+
+export interface QARuleContext {
+    neuronTerms?: NeuronTerm[];
+    serpPolicy?: SerpLengthPolicy;
+    siteContext?: SiteContext;
+    targetKeyword?: string;
+}
+
+export interface QADetectionResult {
+    passed: boolean;
+    score: number;
+    message: string;
+    details?: any;
+    autoFixable?: boolean;
+}
+
+export const CURRENT_SCORE_WEIGHTS = {
+    weights: {
+        critical: 0.35,
+        seo: 0.25,
+        aeo: 0.15,
+        geo: 0.15,
+        enhancement: 0.10
+    },
+    thresholds: {
+        pass: 70,
+        excellent: 90
+    }
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EXISTING CONTENT ANALYSIS
@@ -298,9 +403,9 @@ export interface QAValidationResult {
 
 export interface ExistingContentAnalysis {
     wordCount: number;
-    headings: HeadingInfo[];
+    headings: HeadingInfo[] | { level: number; text: string; hasKeyword?: boolean }[];
     imageCount: number;
-    linkCount: number;
+    linkCount?: number;
     hasFAQ: boolean;
     hasSchema: boolean;
     quality: 'low' | 'medium' | 'high';
@@ -309,11 +414,25 @@ export interface ExistingContentAnalysis {
     lastModified?: string;
     contentAge?: number;
     internalLinks?: number;
+    internalLinkCount?: number;
     externalLinks?: number;
+    externalLinkCount?: number;
     images?: Array<{ src: string; alt: string }>;
     videos?: number;
     tables?: number;
+    tableCount?: number;
     lists?: number;
+    listCount?: number;
+    blockquoteCount?: number;
+    hasConclusion?: boolean;
+    hasReferences?: boolean;
+    hasQuickAnswer?: boolean;
+    preserveableContent?: string[];
+    weakSections?: string[];
+    entities?: string[];
+    mainTopics?: string[];
+    missingElements?: string[];
+    strengthScore?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -365,6 +484,7 @@ export interface CompetitorAnalysis {
     snippet?: string;
     domain?: string;
     position?: number;
+    hasSchema?: boolean;
 }
 
 export interface EntityGapAnalysis {
@@ -382,6 +502,7 @@ export interface EntityGapAnalysis {
     avgWordCount?: number;
     featuredSnippetOpportunity?: boolean;
     topicClusters?: string[];
+    semanticTerms?: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -483,8 +604,13 @@ export interface SerpLengthPolicy {
     minWords: number;
     maxWords: number;
     targetWords: number;
+    targetWordCount: number;
     competitorAverage?: number;
     topRankerAverage?: number;
+    confidenceScore: number;
+    minH2Count: number;
+    minH3Count: number;
+    minFAQCount: number;
 }
 
 export interface ContentOutline {
@@ -512,7 +638,7 @@ export interface GeneratedSection {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// AUTONOMOUS CONFIG — ALL PROPERTIES YOUR CODE USES
+// AUTONOMOUS CONFIG
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface AutonomousConfig {
@@ -524,6 +650,7 @@ export interface AutonomousConfig {
     minQualityScore: number;
     maxRetries: number;
     skipOnError: boolean;
+    pauseOnError?: boolean;
     targetScore?: number;
     maxRetriesPerPage?: number;
     processNewPagesOnly?: boolean;
@@ -531,7 +658,7 @@ export interface AutonomousConfig {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CACHE & LOCKS — ALL PROPERTIES YOUR CODE USES
+// CACHE & LOCKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface CacheEntry<T = any> {
@@ -707,5 +834,7 @@ export interface AppState {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default {
-    APP_VERSION
+    APP_VERSION,
+    createDefaultSeoMetrics,
+    CURRENT_SCORE_WEIGHTS
 };
