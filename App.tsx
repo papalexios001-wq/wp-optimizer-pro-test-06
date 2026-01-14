@@ -1939,13 +1939,13 @@ const log = (msg: string, _progressOrForce?: number | boolean) => {
                 log(`🎬 PHASE 5.5: YouTube Video Integration...`, true);
                 
                 try {
-                    const { searchYouTubeVideo, generateYouTubeEmbed } = await import('../utils');
+                    const { searchYouTubeVideo, generateYouTubeEmbed } = await import('./utils');
                     
                     const videoResult = await searchYouTubeVideo(
                         topic,
                         store.apiKeys.serper,
                         { minViews: 10000 },
-                        (msg) => log(msg)
+                        (msg: string) => log(msg)
                     );
                     
                     if (videoResult.video) {
