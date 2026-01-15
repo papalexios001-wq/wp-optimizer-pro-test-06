@@ -848,6 +848,90 @@ export async function discoverReferences(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 🎬 YOUTUBE VIDEO EMBED (RENDER FUNCTION)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function createYouTubeEmbed(video: YouTubeVideoData): string {
+    if (!video || !video.videoId) return '';
+    
+    return `
+<div class="wpo-box" style="margin: 48px 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+        <iframe 
+            src="https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1" 
+            title="${escapeHtml(video.title)}"
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            allowfullscreen
+            loading="lazy"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
+        ></iframe>
+    </div>
+    <div style="padding: 20px 24px; background: linear-gradient(135deg, rgba(255,0,0,0.05) 0%, rgba(255,0,0,0.02) 100%); border-top: 1px solid rgba(128,128,128,0.1);">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #ff0000, #cc0000); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span style="font-size: 22px;">▶️</span>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(video.title)}</h4>
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 12px; opacity: 0.6;">
+                    <span>📺 ${escapeHtml(video.channel)}</span>
+                    <span>👁️ ${video.views.toLocaleString()} views</span>
+                    ${video.duration ? `<span>⏱️ ${escapeHtml(video.duration)}</span>` : ''}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📚 REFERENCES SECTION (RENDER FUNCTION)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function createReferencesSection(references: DiscoveredReference[]): string {
+    if (!references || references.length === 0) return '';
+    
+    const refItems = references.slice(0, 10).map((ref, i) => {
+        const domain = extractDomain(ref.url);
+        const yearDisplay = ref.year ? ` (${ref.year})` : '';
+        
+        return `
+        <li style="display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; ${i < references.length - 1 ? 'border-bottom: 1px solid rgba(128,128,128,0.08);' : ''}">
+            <div style="flex-shrink: 0; width: 28px; height: 28px; background: rgba(99,102,241,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #6366f1;">${i + 1}</div>
+            <div style="flex: 1; min-width: 0;">
+                <a href="${escapeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" style="font-size: 15px; font-weight: 600; color: #6366f1; text-decoration: none; line-height: 1.4; display: block; margin-bottom: 4px;">
+                    ${escapeHtml(ref.title)}${yearDisplay}
+                </a>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; opacity: 0.6;">
+                    ${ref.favicon ? `<img src="${escapeHtml(ref.favicon)}" alt="" width="14" height="14" style="border-radius: 3px;" onerror="this.style.display='none'">` : ''}
+                    <span>${escapeHtml(ref.source || domain)}</span>
+                    ${ref.authorityScore >= 80 ? '<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">HIGH AUTHORITY</span>' : ''}
+                </div>
+                ${ref.snippet ? `<p style="font-size: 13px; line-height: 1.5; margin: 8px 0 0 0; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${escapeHtml(ref.snippet)}</p>` : ''}
+            </div>
+        </li>`;
+    }).join('');
+
+    return `
+<section class="wpo-box" style="background: linear-gradient(135deg, rgba(99,102,241,0.04) 0%, rgba(139,92,246,0.02) 100%); border: 1px solid rgba(99,102,241,0.1); border-radius: 20px; padding: 28px; margin: 48px 0;">
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(99,102,241,0.1);">
+        <div style="width: 52px; height: 52px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(99,102,241,0.25);">
+            <span style="font-size: 24px;">📚</span>
+        </div>
+        <div>
+            <h2 style="font-size: 20px; font-weight: 800; margin: 0;">References & Sources</h2>
+            <p style="font-size: 13px; opacity: 0.6; margin: 4px 0 0 0;">${references.length} authoritative sources cited</p>
+        </div>
+    </div>
+    <ul style="list-style: none; padding: 0; margin: 0;">
+        ${refItems}
+    </ul>
+</section>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 🔗 INTERNAL LINK INJECTION — EVEN DISTRIBUTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
