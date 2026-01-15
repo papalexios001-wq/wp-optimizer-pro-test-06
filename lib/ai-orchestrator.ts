@@ -959,17 +959,16 @@ function findAnchorText(text: string, target: InternalLinkTarget): string {
     if (!text || !target?.title) return '';
     
     const textLower = text.toLowerCase();
-    const titleLower = target.title.toLowerCase();
     
-    // Stop words to exclude from anchors
-    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'any', 'because', 'before', 'below', 'between', 'both', 'during', 'each', 'few', 'further', 'here', 'how', 'into', 'its', 'itself', 'just', 'more', 'most', 'no', 'nor', 'not', 'now', 'off', 'once', 'only', 'other', 'our', 'out', 'over', 'own', 'same', 'so', 'some', 'such', 'than', 'that', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'too', 'under', 'until', 'up', 'very', 'what', 'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'your', 'best', 'top', 'guide', 'complete', 'ultimate', 'how']);
+    // Stop words to NEVER include in anchors
+    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'need', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'any', 'because', 'before', 'below', 'between', 'both', 'during', 'each', 'few', 'here', 'how', 'into', 'its', 'just', 'more', 'most', 'no', 'nor', 'not', 'now', 'off', 'once', 'only', 'other', 'our', 'out', 'over', 'own', 'same', 'so', 'some', 'such', 'than', 'that', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'too', 'under', 'until', 'up', 'very', 'what', 'when', 'where', 'which', 'while', 'who', 'why', 'your', 'best', 'top', 'guide', 'complete', 'ultimate', 'how']);
     
     // Extract meaningful keywords from title
-    const titleWords = titleLower.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+    const titleWords = target.title.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
     
     if (titleWords.length === 0) return '';
     
-    // STRATEGY 1: Find exact 2-4 word phrase from title (BEST - most relevant)
+    // STRATEGY 1: Find exact 2-4 word phrase from title (BEST)
     for (let len = Math.min(4, titleWords.length); len >= 2; len--) {
         for (let start = 0; start <= titleWords.length - len; start++) {
             const phrase = titleWords.slice(start, start + len).join(' ');
@@ -980,7 +979,7 @@ function findAnchorText(text: string, target: InternalLinkTarget): string {
         }
     }
     
-    // STRATEGY 2: Find single important keyword with 1 adjacent word
+    // STRATEGY 2: Find single important keyword (5+ chars)
     const importantWords = titleWords.filter(w => w.length >= 5);
     
     for (const word of importantWords) {
@@ -990,22 +989,11 @@ function findAnchorText(text: string, target: InternalLinkTarget): string {
         const actualWord = text.substring(idx, idx + word.length);
         
         // Get one word after
-        const afterText = text.substring(idx + word.length, Math.min(text.length, idx + word.length + 30));
+        const afterText = text.substring(idx + word.length, Math.min(text.length, idx + word.length + 25));
         const wordAfter = afterText.trim().split(/\s+/)[0]?.replace(/[^a-zA-Z]/g, '');
         
-        if (wordAfter && wordAfter.length >= 3 && !stopWords.has(wordAfter.toLowerCase())) {
+        if (wordAfter && wordAfter.length >= 3 && wordAfter.length <= 12 && !stopWords.has(wordAfter.toLowerCase())) {
             const anchor = `${actualWord} ${wordAfter}`;
-            if (anchor.length >= 8 && anchor.length <= 30) {
-                return anchor;
-            }
-        }
-        
-        // Get one word before
-        const beforeText = text.substring(Math.max(0, idx - 30), idx);
-        const wordBefore = beforeText.trim().split(/\s+/).pop()?.replace(/[^a-zA-Z]/g, '');
-        
-        if (wordBefore && wordBefore.length >= 3 && !stopWords.has(wordBefore.toLowerCase())) {
-            const anchor = `${wordBefore} ${actualWord}`;
             if (anchor.length >= 8 && anchor.length <= 30) {
                 return anchor;
             }
@@ -1029,9 +1017,10 @@ function findAnchorText(text: string, target: InternalLinkTarget): string {
         }
     }
     
-    // NO FALLBACK - return empty if no good match (prevents bad anchors)
+    // NO FALLBACK — Return empty if no good match
     return '';
 }
+
 
 
 
@@ -1639,11 +1628,11 @@ OUTPUT: HTML only, starting with <h2>Conclusion</h2>.`;
             if (config.internalLinks && config.internalLinks.length > 0) {
                 log(`🔗 Stage 8: Injecting internal links (distributed)...`);
                 
-const linkResult = injectInternalLinksDistributed(
-    assembledContent,
-    config.internalLinks,
-    '',  // Don't exclude anything — let it add all relevant links
-    log
+            const linkResult = injectInternalLinksDistributed(
+            assembledContent,
+            config.internalLinks,
+            '',  // Already correct in your file - just verify it
+            log
 );
 
 
@@ -1871,9 +1860,15 @@ OUTPUT FORMAT (VALID JSON ONLY):
                         { value: '10K+', label: 'People Helped', icon: '👥' }
                     ]));
                     
-                    // 5. Main Content with Visual Enhancements
-                    let mainContent = rawContract.htmlContent;
-                    mainContent = removeAllH1Tags(mainContent, log);
+// 5. Main Content with Visual Enhancements
+let mainContent = rawContract.htmlContent;
+mainContent = removeAllH1Tags(mainContent, log);
+
+// CRITICAL: Strip FAQ section from LLM output (we add our own accordion later)
+mainContent = mainContent.replace(/<h2[^>]*>.*?(?:FAQ|Frequently Asked|Common Questions).*?<\/h2>[\s\S]*?(?=<h2|$)/gi, '');
+mainContent = mainContent.replace(/<section[^>]*itemtype[^>]*FAQPage[^>]*>[\s\S]*?<\/section>/gi, '');
+log(`   🧹 Stripped duplicate FAQ from LLM output`);
+
                     
                     const h2Matches = [...mainContent.matchAll(/<h2[^>]*>[\s\S]*?(?=<h2|$)/gi)];
                     
@@ -2211,13 +2206,14 @@ OUTPUT FORMAT (VALID JSON ONLY):
                     // ═══════════════════════════════════════════════════════════
                     
                     if (config.internalLinks && config.internalLinks.length > 0) {
-                        log(`   🔗 Injecting internal links (${config.internalLinks.length} available)...`);
-                        const linkResult = injectInternalLinksDistributed(
-                            assembledContent,
-                            config.internalLinks,
-                            config.topic,
-                            log
-                        );
+                    log(`   🔗 Injecting internal links (${config.internalLinks.length} available)...`);
+                    const linkResult = injectInternalLinksDistributed(
+                    assembledContent,
+                    config.internalLinks,
+                    '',  // ← FIXED: Pass empty string, not topic!
+                    log
+                    );
+
                         assembledContent = linkResult.html;
                         log(`   ✅ ${linkResult.totalLinks} internal links injected`);
                     } else {
