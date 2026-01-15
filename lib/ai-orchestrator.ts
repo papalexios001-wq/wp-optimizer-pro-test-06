@@ -1436,14 +1436,16 @@ OUTPUT: HTML only, starting with <h2>Conclusion</h2>.`;
     
     async generateSingleShot(config: GenerateConfig, log: LogFunction): Promise<GenerationResult> {
         const startTime = Date.now();
-        log(`🎨 SINGLE-SHOT GENERATION (FULL FEATURES)`);
+        log(`🎨 SINGLE-SHOT GENERATION (ENTERPRISE MODE)`);
         
         let youtubeVideo: YouTubeVideoData | null = null;
         let references: DiscoveredReference[] = [];
         
         // ═══════════════════════════════════════════════════════════════
-        // PARALLEL: YouTube + References Discovery (SAME AS STAGED!)
+        // STEP 1: PARALLEL DISCOVERY — YouTube + References
         // ═══════════════════════════════════════════════════════════════
+        
+        log(`   🔍 Starting parallel discovery...`);
         
         const youtubePromise = config.apiKeys?.serper ? (async () => {
             try {
@@ -1451,9 +1453,11 @@ OUTPUT: HTML only, starting with <h2>Conclusion</h2>.`;
                 youtubeVideo = await searchYouTubeVideo(config.topic, config.apiKeys.serper, log);
                 if (youtubeVideo) {
                     log(`   ✅ YouTube: "${youtubeVideo.title.substring(0, 40)}..."`);
+                } else {
+                    log(`   ⚠️ No suitable YouTube video found`);
                 }
             } catch (e: any) {
-                log(`   ⚠️ YouTube search failed: ${e.message}`);
+                log(`   ⚠️ YouTube search error: ${e.message}`);
             }
         })() : Promise.resolve();
         
@@ -1476,28 +1480,68 @@ OUTPUT: HTML only, starting with <h2>Conclusion</h2>.`;
                     log(`   ✅ Discovered ${references.length} references`);
                 }
             } catch (e: any) {
-                log(`   ⚠️ Reference discovery failed: ${e.message}`);
+                log(`   ⚠️ Reference discovery error: ${e.message}`);
             }
         })() : Promise.resolve();
         
-        const userPrompt = `Write a comprehensive ${CONTENT_TARGETS.TARGET_WORDS}+ word blog post about: "${config.topic}"
+        // ═══════════════════════════════════════════════════════════════
+        // STEP 2: HUMAN-STYLE CONTENT GENERATION
+        // ═══════════════════════════════════════════════════════════════
+        
+        const humanPrompt = `You're a world-class blogger who writes like Alex Hormozi meets Tim Ferriss. Your content is punchy, practical, and impossible to detect as AI.
 
-Include:
-- 8-12 H2 sections with H3 subsections
-- Practical examples and tips
-- FAQ section with 8-10 questions and detailed answers
-- NO H1 tags (WordPress provides title)
+Write a ${CONTENT_TARGETS.TARGET_WORDS}+ word blog post about: "${config.topic}"
 
-Output ONLY valid JSON with: title, metaDescription, slug, htmlContent, excerpt, faqs, wordCount`;
+VOICE RULES (CRITICAL):
+• Write like you're texting a smart friend — casual but valuable
+• Use "you" and "your" in almost every paragraph
+• Contractions ALWAYS: don't, won't, can't, you'll, here's, that's
+• Start sentences with: Look, Here's the thing, And, But, So, Now, Plus, Oh, 
+• Mix punchy 3-word sentences with longer ones
+• One idea per sentence. Period.
+• 2-3 sentences per paragraph MAX
+• Single sentence paragraphs for emphasis
+
+ABSOLUTELY FORBIDDEN (instant AI detection):
+• "In today's [anything]" / "In the [adjective] world"
+• "It's important to note" / "It's worth mentioning" / "It should be noted"
+• "This comprehensive guide" / "This article will"
+• "Let's dive in" / "Without further ado" / "Let's get started"
+• "Leverage" / "Utilize" / "Facilitate" / "Delve" / "Realm"
+• "Navigate" / "Landscape" / "Paradigm" / "Multifaceted"
+• "Game-changer" / "Revolutionary" / "Cutting-edge" / "Robust"
+• "In conclusion" / "To summarize" / "In summary" / "To sum up"
+• "Key takeaways" at the end (we add this separately)
+• Starting ANY sentence with "This" followed by a linking verb
+
+STRUCTURE:
+• 8-12 H2 sections, each with 2-3 H3 subsections
+• NO H1 tags — WordPress handles the title
+• Bullet points and numbered lists where natural
+• Real examples with specific numbers when possible
+• FAQ section: 8-10 questions with 80-150 word answers each
+
+OUTPUT: Valid JSON only:
+{
+  "title": "Curiosity-inducing title (50-60 chars, no clickbait)",
+  "metaDescription": "Compelling meta description (150-160 chars)",
+  "slug": "url-friendly-slug",
+  "htmlContent": "Full HTML content starting with a hook paragraph",
+  "excerpt": "2-3 sentence compelling summary",
+  "faqs": [{"question": "Real question people ask", "answer": "Detailed 80-150 word answer"}],
+  "wordCount": number
+}
+
+Return ONLY valid JSON. No markdown. No explanation.`;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
-            log(`   📝 Attempt ${attempt}/3...`);
+            log(`   📝 Content attempt ${attempt}/3...`);
             
             try {
                 const response = await callLLM(
-                    config.provider, config.apiKeys, config.model, userPrompt,
-                    buildSystemPrompt({ topic: config.topic, targetWords: CONTENT_TARGETS.TARGET_WORDS }),
-                    { temperature: 0.7 + (attempt - 1) * 0.05, maxTokens: 16000 },
+                    config.provider, config.apiKeys, config.model, humanPrompt,
+                    'You are an elite content creator. Your writing is indistinguishable from top human bloggers. Never sound robotic or formal.',
+                    { temperature: 0.78 + (attempt - 1) * 0.04, maxTokens: 16000 },
                     TIMEOUTS.SINGLE_SHOT, log
                 );
                 
@@ -1506,14 +1550,15 @@ Output ONLY valid JSON with: title, metaDescription, slug, htmlContent, excerpt,
                 if (parsed.success && parsed.data?.htmlContent) {
                     let rawContract = parsed.data as ContentContract;
                     
-                    // Wait for parallel tasks to complete
+                    // Wait for parallel discovery to complete
+                    log(`   ⏳ Waiting for YouTube & References...`);
                     await Promise.all([youtubePromise, referencesPromise]);
                     
                     // ═══════════════════════════════════════════════════════════
-                    // 🎨 ASSEMBLE CONTENT WITH ALL VISUAL COMPONENTS
+                    // STEP 3: ASSEMBLE WITH ALL VISUAL COMPONENTS
                     // ═══════════════════════════════════════════════════════════
                     
-                    log(`   🎨 Injecting visual components...`);
+                    log(`   🎨 Assembling with visual components...`);
                     
                     const contentParts: string[] = [];
                     
@@ -1522,85 +1567,98 @@ Output ONLY valid JSON with: title, metaDescription, slug, htmlContent, excerpt,
                     contentParts.push('<div class="wpo-content">');
                     
                     // 2. Quick Answer Box
-                    const quickAnswerText = `${config.topic} requires understanding key principles and applying proven strategies. This comprehensive guide covers everything from foundational concepts to advanced techniques, backed by expert insights and real-world examples.`;
-                    contentParts.push(createQuickAnswerBox(quickAnswerText));
+                    const quickAnswerText = `Here's the deal: ${config.topic} isn't as complicated as most people make it. This guide breaks down exactly what works (and what doesn't) so you can skip the trial-and-error phase and get results fast.`;
+                    contentParts.push(createQuickAnswerBox(quickAnswerText, '⚡ Quick Answer'));
                     
                     // 3. YouTube Video (if found)
                     if (youtubeVideo) {
                         contentParts.push(createYouTubeEmbed(youtubeVideo));
-                        log(`   ✅ YouTube video embedded: "${youtubeVideo.title.substring(0, 40)}..."`);
+                        log(`   ✅ YouTube embedded: "${youtubeVideo.title.substring(0, 35)}..."`);
+                    } else {
+                        log(`   ℹ️ No YouTube video to embed`);
                     }
                     
-                    // 4. Main Content (from LLM)
+                    // 4. Main Content with Visual Enhancements
                     let mainContent = rawContract.htmlContent;
                     mainContent = removeAllH1Tags(mainContent, log);
                     
-                    // Split content into sections and inject Pro Tips
                     const h2Matches = [...mainContent.matchAll(/<h2[^>]*>[\s\S]*?(?=<h2|$)/gi)];
                     
                     if (h2Matches.length > 0) {
                         const proTips = [
-                            `Start with the fundamentals before moving to advanced techniques — mastery comes from a solid foundation.`,
-                            `Track your progress regularly and adjust your approach based on actual results, not assumptions.`,
-                            `Learn from industry experts and stay updated with the latest trends and best practices.`
+                            `Here's what nobody tells you: the first 30 days are the hardest. Push through that initial resistance and everything gets easier. Most people quit at day 21.`,
+                            `Stop trying to be perfect. Seriously. Done beats perfect every single time. Ship fast, learn faster, iterate constantly.`,
+                            `The secret sauce? Consistency beats intensity. Showing up every day for 30 minutes beats a 10-hour weekend marathon.`,
+                            `Track everything. What gets measured gets improved. Set up your tracking system before you do anything else.`
                         ];
+                        
+                        let tipIndex = 0;
                         
                         h2Matches.forEach((match, index) => {
                             contentParts.push(match[0]);
                             
-                            // Add Pro Tip after every 3rd section
-                            if ((index + 1) % 3 === 0 && proTips[Math.floor(index / 3)]) {
-                                contentParts.push(createProTipBox(proTips[Math.floor(index / 3)]));
+                            // Pro Tip after sections 3, 6, 9
+                            if ((index + 1) % 3 === 0 && tipIndex < proTips.length) {
+                                contentParts.push(createProTipBox(proTips[tipIndex], '💡 Pro Tip'));
+                                tipIndex++;
                             }
                             
-                            // Add Warning after section 5
-                            if (index === 4) {
+                            // Warning after section 4
+                            if (index === 3) {
                                 contentParts.push(createWarningBox(
-                                    `Many beginners make the mistake of rushing through the fundamentals. Take your time to fully understand each concept before moving forward — it will save you significant time and frustration later.`,
-                                    'Common Mistake to Avoid'
+                                    `Biggest mistake I see? Trying to do everything at once. Pick ONE thing from this section, nail it completely, then move to the next. Stack skills, don't scatter them.`,
+                                    '⚠️ Don\'t Skip This'
+                                ));
+                            }
+                            
+                            // Expert Quote after section 6
+                            if (index === 5) {
+                                contentParts.push(createExpertQuoteBox(
+                                    `The bottleneck is never resources. It's resourcefulness. Stop waiting for perfect conditions — they don't exist.`,
+                                    'Tony Robbins',
+                                    'Peak Performance Coach'
                                 ));
                             }
                         });
                     } else {
-                        // No H2s found, just add content directly
                         contentParts.push(mainContent);
-                        contentParts.push(createProTipBox(`Focus on implementing what you learn. Knowledge without action produces zero results.`));
+                        contentParts.push(createProTipBox(`Knowledge without action is just entertainment. Pick one thing from this guide and do it today. Not tomorrow. Today.`, '💡 Take Action'));
                     }
                     
                     // 5. Key Takeaways
                     const keyTakeaways = [
-                        `Understanding ${config.topic} requires both theoretical knowledge and practical application`,
-                        `Success depends on consistent effort and continuous learning`,
-                        `Expert guidance and proven frameworks accelerate results significantly`,
-                        `Regular assessment and optimization are essential for long-term success`,
-                        `Building a strong foundation enables advanced strategy implementation`
+                        `${config.topic} isn't complicated — but it does require consistent action`,
+                        `Focus on the 20% that drives 80% of results (ignore the rest)`,
+                        `Track your progress weekly — what gets measured gets improved`,
+                        `Start messy, iterate fast — perfectionism is procrastination in disguise`,
+                        `Find someone who's done it and model their process exactly`
                     ];
                     contentParts.push(createKeyTakeaways(keyTakeaways));
                     
-                    // 6. FAQ Accordion (if FAQs exist)
+                    // 6. FAQ Accordion
                     if (rawContract.faqs && rawContract.faqs.length > 0) {
                         contentParts.push(createFAQAccordion(rawContract.faqs));
-                        log(`   ✅ FAQ accordion: ${rawContract.faqs.length} items`);
+                        log(`   ✅ FAQ: ${rawContract.faqs.length} questions`);
                     }
                     
                     // 7. References Section
                     if (references.length > 0) {
                         contentParts.push(createReferencesSection(references));
-                        log(`   ✅ References section: ${references.length} sources`);
+                        log(`   ✅ References: ${references.length} sources`);
                     }
                     
                     // 8. Close wrapper
                     contentParts.push('</div>');
                     
-                    // Assemble final content
+                    // Assemble content
                     let assembledContent = contentParts.filter(Boolean).join('\n\n');
                     
                     // ═══════════════════════════════════════════════════════════
-                    // 🔗 INTERNAL LINKS INJECTION
+                    // STEP 4: INJECT INTERNAL LINKS
                     // ═══════════════════════════════════════════════════════════
                     
                     if (config.internalLinks && config.internalLinks.length > 0) {
-                        log(`   🔗 Injecting internal links...`);
+                        log(`   🔗 Injecting internal links (${config.internalLinks.length} available)...`);
                         const linkResult = injectInternalLinksDistributed(
                             assembledContent,
                             config.internalLinks,
@@ -1608,9 +1666,9 @@ Output ONLY valid JSON with: title, metaDescription, slug, htmlContent, excerpt,
                             log
                         );
                         assembledContent = linkResult.html;
-                        log(`   ✅ ${linkResult.totalLinks} internal links added`);
+                        log(`   ✅ ${linkResult.totalLinks} internal links injected`);
                     } else {
-                        log(`   ⚠️ No internal links provided`);
+                        log(`   ℹ️ No internal links to inject`);
                     }
                     
                     const finalContract: ContentContract = {
@@ -1620,7 +1678,8 @@ Output ONLY valid JSON with: title, metaDescription, slug, htmlContent, excerpt,
                     };
                     
                     if (finalContract.wordCount >= 2000) {
-                        log(`   ✅ Success: ${finalContract.wordCount} words with ALL components`);
+                        log(`   ✅ SUCCESS: ${finalContract.wordCount} words`);
+                        log(`   📊 YouTube=${!!youtubeVideo} | Refs=${references.length} | Links=${config.internalLinks?.length || 0}`);
                         return { 
                             contract: finalContract, 
                             generationMethod: 'single-shot', 
