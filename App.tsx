@@ -99,6 +99,24 @@ import {
 } from './lib/ai-orchestrator';
 import { getNeuronWriterAnalysis, listNeuronProjects } from './neuronwriter';
 
+function extractTopicFromUrl(url: string): string {
+    try {
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        const lastPart = pathParts[pathParts.length - 1] || '';
+        // Convert slug to readable topic
+        return lastPart
+            .replace(/-/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase())
+            .trim() || 'Content Optimization';
+    } catch {
+        return url.split('/').pop()?.replace(/-/g, ' ') || 'Content Optimization';
+    }
+}
+
+
+
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📌 VERSION & CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1042,23 +1060,47 @@ const hasValidSerperKey = useCallback(() => {
         if (!store.wpConfig.url) return failWith('WordPress URL not configured');
         if (!store.wpConfig.username || !store.wpConfig.password) return failWith('WordPress credentials not configured');
 
-        const getPage = () => useAppStore.getState().pages.find(p => p.id === targetId)!;
-        
-        if (!getPage()?.jobState) {
-            store.initJobState(targetId);
-        }
+        // 🔥 SAFE PAGE ACCESS — Handle missing pages gracefully
+const getPage = () => useAppStore.getState().pages.find(p => p.id === targetId);
 
-        store.updateJobState(targetId, { 
-            status: 'running', 
-            phase: 'initializing', 
-            error: undefined, 
-            attempts: (getPage()?.jobState?.attempts || 0) + 1,
-            startTime
-        });
-        store.updatePage(targetId, { status: 'analyzing' });
+// If page doesn't exist in store, create it first
+const existingPage = getPage();
+if (!existingPage) {
+    log(`   ⚠️ Page not in store, creating entry for: ${targetId}`);
+    const slug = extractSlugFromUrl(targetId);
+    const inferredTitle = extractTopicFromUrl(targetId);
+    
+    const newPage: SitemapPage = {
+        id: targetId,
+        title: inferredTitle,
+        slug,
+        lastMod: new Date().toISOString(),
+        wordCount: null,
+        crawledContent: null,
+        healthScore: null,
+        status: 'idle',
+        opportunity: 50,
+        improvementHistory: []
+    };
+    store.addPages([newPage]);
+}
 
-        const siteContext = getSiteContext();
-        const auth = getAuth();
+if (!getPage()?.jobState) {
+    store.initJobState(targetId);
+}
+
+store.updateJobState(targetId, { 
+    status: 'running', 
+    phase: 'initializing', 
+    error: undefined, 
+    attempts: (getPage()?.jobState?.attempts || 0) + 1,
+    startTime
+});
+store.updatePage(targetId, { status: 'analyzing' });
+
+const siteContext = getSiteContext();
+const auth = getAuth();
+
         
         let preservation: PostPreservationData = {
             originalSlug: null,
@@ -1081,7 +1123,9 @@ const hasValidSerperKey = useCallback(() => {
 
             
             let originalContent = '';
-            let topic = getPage().title;
+            // 🔥 SAFE: Always have a fallback topic
+			let topic = getPage()?.title || extractTopicFromUrl(targetId) || 'Content Optimization';
+
             let postId: number | null = null;
 
             postId = await wpResolvePostIdEnhanced(store.wpConfig.url, targetId, auth, log);
