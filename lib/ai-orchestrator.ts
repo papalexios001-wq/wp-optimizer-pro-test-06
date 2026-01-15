@@ -1185,20 +1185,27 @@ Return ONLY the JSON array.`;
                 }
             }
             
+
             // ═══════════════════════════════════════════════════════════════
             // STAGE 5: DISCOVER REFERENCES
-            // ═══════════════════════════════════════════════════════════════
-            
-            if (config.apiKeys?.serper) {
-                onStageProgress?.({ stage: 'references', progress: 65, message: 'Finding authoritative sources...' });
-                log(`📚 Stage 5: Discovering references...`);
-                
-                try {
-                    references = await discoverReferences(config.topic, config.apiKeys.serper, { targetCount: 10, minAuthorityScore: 60 }, log);
-                } catch (err: any) {
-                    log(`   ⚠️ Reference discovery failed: ${err.message}`);
-                }
-            }
+if (config.apiKeys?.serper) {
+    // Use passed references OR discover new ones
+    if (config.validatedReferences && config.validatedReferences.length >= 5) {
+        references = config.validatedReferences.map(ref => ({
+            url: ref.url,
+            title: ref.title,
+            source: ref.source || extractSourceName(ref.url),
+            snippet: ref.snippet,
+            year: ref.year,
+            authorityScore: ref.isAuthority ? 90 : 70,
+            favicon: `https://www.google.com/s2/favicons?domain=${extractDomain(ref.url)}&sz=32`
+        }));
+        log(`   ✅ Using ${references.length} pre-validated references`);
+    } else {
+        references = await discoverReferences(config.topic, config.apiKeys.serper, {...}, log);
+    }
+}
+
             
             // ═══════════════════════════════════════════════════════════════
             // STAGE 6: GENERATE INTRO & CONCLUSION
