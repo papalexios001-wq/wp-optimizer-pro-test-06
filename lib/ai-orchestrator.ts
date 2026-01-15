@@ -64,6 +64,93 @@ import {
 
 import { injectInternalLinks } from '../utils';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADD REFERENCES TO GENERATED CONTENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { 
+    discoverAndValidateReferences, 
+    DiscoveredReference 
+} from './reference-service';
+
+import {
+    THEME_ADAPTIVE_CSS,
+    createQuickAnswerBox,
+    createKeyTakeaways,
+    createFAQAccordion,
+    createReferencesSection
+} from './visual-components';
+
+// In your content assembly function:
+async function assembleEnterpriseContent(
+    topic: string,
+    sections: string[],
+    faqs: Array<{ question: string; answer: string }>,
+    keyTakeaways: string[],
+    serperApiKey: string,
+    log: (msg: string) => void
+): Promise<string> {
+    
+    // 1. Discover references using Serper API
+    let references: DiscoveredReference[] = [];
+    
+    if (serperApiKey) {
+        log(`📚 Discovering authoritative references...`);
+        
+        try {
+            references = await discoverAndValidateReferences(
+                topic,
+                serperApiKey,
+                {
+                    targetCount: 10,
+                    minAuthorityScore: 60,
+                    includeNews: true,
+                    includeAcademic: true
+                },
+                log
+            );
+        } catch (error: any) {
+            log(`   ⚠️ Reference discovery failed: ${error.message}`);
+        }
+    }
+    
+    // 2. Assemble content with visual components
+    const assembledContent = [
+        // Theme-adaptive CSS
+        THEME_ADAPTIVE_CSS,
+        
+        // Wrapper
+        '<div class="wpo-content">',
+        
+        // Main content sections
+        ...sections,
+        
+        // Key Takeaways
+        createKeyTakeaways(keyTakeaways),
+        
+        // FAQ Section
+        createFAQAccordion(faqs),
+        
+        // References Section (only if we have references)
+        references.length > 0 
+            ? createReferencesSection(references.map(r => ({
+                url: r.url,
+                title: r.title,
+                source: r.source,
+                year: r.year,
+                snippet: r.snippet,
+                favicon: r.favicon
+            })))
+            : '',
+        
+        // Close wrapper
+        '</div>'
+    ].filter(Boolean).join('\n\n');
+    
+    log(`✅ Content assembled: ${references.length} references included`);
+    
+    return assembledContent;
+}
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
