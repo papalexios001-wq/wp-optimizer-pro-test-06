@@ -1429,44 +1429,32 @@ try {
 
 if (store.apiKeys.serper && bestContract && bestContract.htmlContent) {
     store.updateJobState(targetId, { phase: 'youtube_integration' as GodModePhase });
-    log(`🎬 PHASE 5.5: YouTube Video Integration...`, true);
+    log(`🎬 PHASE 5.5: YouTube Video Integration...`);
+    updateProgress('youtube_integration');
     
     try {
-        // Search for a relevant, high-quality YouTube video
-        const videoResult = await searchYouTubeVideo(
+        // Search for a relevant YouTube video
+        const video = await searchYouTubeVideo(
             topic,
             store.apiKeys.serper,
-            { 
-                minViews: 10000,
-                maxAgeDays: 730, // 2 years max
-                maxResults: 10
-            },
             (msg: string) => log(msg)
         );
         
-        if (videoResult.video) {
-            const video = videoResult.video;
-            
-            // Generate beautiful embed HTML
-            const videoEmbed = generateYouTubeEmbed(video, {
-                showHeader: true,
-                showStats: true,
-                lazyLoad: true
-            });
+        if (video) {
+            // Generate embed HTML using the correct function
+            const videoEmbed = createYouTubeEmbed(video);
             
             // Find optimal insertion point
             let insertPos = -1;
-            let insertMethod = '';
             
             // Option 1: After Quick Answer box
             const quickAnswerEnd = bestContract.htmlContent.toLowerCase().indexOf('quick answer');
             if (quickAnswerEnd > 0 && quickAnswerEnd < 1500) {
-                // Find the closing div after Quick Answer
                 const searchStart = quickAnswerEnd;
                 const searchArea = bestContract.htmlContent.substring(searchStart, searchStart + 500);
-                const closingDivs = searchArea.match(/<\/div>/gi) || [];
+                const closingDivMatch = searchArea.match(/<\/div>/gi);
                 
-                if (closingDivs.length >= 2) {
+                if (closingDivMatch && closingDivMatch.length >= 2) {
                     let divCount = 0;
                     let pos = searchStart;
                     while (divCount < 2 && pos < bestContract.htmlContent.length) {
@@ -1475,19 +1463,15 @@ if (store.apiKeys.serper && bestContract && bestContract.htmlContent) {
                         pos = nextDiv + 6;
                         divCount++;
                     }
-                    if (divCount >= 2) {
-                        insertPos = pos;
-                        insertMethod = 'after Quick Answer box';
-                    }
+                    if (divCount >= 2) insertPos = pos;
                 }
             }
             
-            // Option 2: Before first H2 (but after intro)
+            // Option 2: Before first H2
             if (insertPos === -1) {
                 const firstH2 = bestContract.htmlContent.indexOf('<h2');
                 if (firstH2 > 500 && firstH2 < 3000) {
                     insertPos = firstH2;
-                    insertMethod = 'before first H2';
                 }
             }
             
@@ -1503,7 +1487,6 @@ if (store.apiKeys.serper && bestContract && bestContract.htmlContent) {
                 }
                 if (pCount >= 3 && searchPos < 2000) {
                     insertPos = searchPos;
-                    insertMethod = 'after 3rd paragraph';
                 }
             }
             
@@ -1514,30 +1497,19 @@ if (store.apiKeys.serper && bestContract && bestContract.htmlContent) {
                     '\n\n' + videoEmbed + '\n\n' +
                     bestContract.htmlContent.slice(insertPos);
                 
-                log(`   ✅ Video embedded: "${video.title.substring(0, 50)}..."`, true);
-                log(`   📍 Placement: ${insertMethod}`);
+                log(`   ✅ Video embedded: "${video.title.substring(0, 50)}..."`);
                 log(`   📊 ${video.channel} • ${video.views.toLocaleString()} views`);
-                log(`   🔗 https://youtube.com/watch?v=${video.videoId}`);
-                
-                // Store video data in contract for reference
-                (bestContract as any).youtubeVideo = video;
             } else {
                 log(`   ⚠️ Could not find optimal insertion point for video`);
             }
         } else {
             log(`   ⚠️ No suitable YouTube video found for this topic`);
-            
-            // Show alternative suggestion
-            if (videoResult.alternativeVideos && videoResult.alternativeVideos.length > 0) {
-                log(`   💡 ${videoResult.alternativeVideos.length} alternative videos available (lower quality)`);
-            }
         }
     } catch (ytError: any) {
-        log(`   ❌ YouTube integration error: ${ytError.message}`, true);
-        // Don't fail the whole job for YouTube errors
+        log(`   ❌ YouTube integration error: ${ytError.message}`);
     }
 } else if (!store.apiKeys.serper) {
-    log(`⚠️ Skipping YouTube integration (no Serper API key)`, true);
+    log(`⚠️ Skipping YouTube integration (no Serper API key)`);
 }
 
 
