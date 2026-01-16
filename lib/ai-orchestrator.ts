@@ -1159,7 +1159,6 @@ function extractTargetKeywords(title: string, url: string): string[] {
                     // 🎯 SOTA: Use enterprise-grade contextual anchor text engine
         const targetKeywords = extractTargetKeywords(target.title || '', target.url);
         const anchorCandidate = findContextualAnchorText(para.text, targetKeywords, target.title || '', log);        const anchorText = anchorCandidate ? anchorCandidate.phrase : null;
-                    const anchorText = anchorCandidate ? anchorCandidate.phrase : null;
             if (anchorText && anchorText.length >= 4) {
                     anchorsMatched++;
                     const link = `<a href="${escapeHtml(target.url)}" title="${escapeHtml(target.title)}">${anchorText}</a>`;
