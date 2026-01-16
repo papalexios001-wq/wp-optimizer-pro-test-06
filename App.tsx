@@ -92,10 +92,10 @@ import {
     orchestrator, 
     VALID_GEMINI_MODELS, 
     OPENROUTER_MODELS,
-    searchYouTubeVideo,        	// ADD THIS
-    createYouTubeEmbed,			// ADD THIS
-	discoverReferences,			// ADD THIS
-    createReferencesSection		// ADD THIS (note: function name differs!)
+    searchYouTubeVideo,
+    createYouTubeEmbed,
+    discoverReferences,
+    createReferencesSection
 } from './lib/ai-orchestrator';
 import { getNeuronWriterAnalysis, listNeuronProjects } from './neuronwriter';
 
@@ -783,11 +783,12 @@ const hasRequiredKeys = useCallback(() => {
 }, [store.apiKeys]);
 
 // 🔥 IMPROVED: Validates Serper API key format properly
+// ✅ FIXED (SIMPLER):
 const hasSerperKey = useCallback(() => {
     const key = store.apiKeys.serper;
-    // Serper keys are typically 40+ characters, alphanumeric
-    return !!(key && key.length >= 30 && key.match(/^[a-zA-Z0-9]+$/));
+    return !!(key && key.trim().length >= 20);
 }, [store.apiKeys.serper]);
+
 
 // 🔥 NEW: Explicit validation function for use in conditionals
 const hasValidSerperKey = useCallback(() => {
@@ -1177,9 +1178,16 @@ const auth = getAuth();
             const actualModel = getActualModel();
             
             log(`🚀 ═══════════════════════════════════════════════════════════`);
-            log(`🚀 GOD MODE: "${topic.substring(0, 50)}..."`);
-            log(`🚀 Provider: ${store.selectedProvider} | Model: ${actualModel}`);
-            log(`🚀 ═══════════════════════════════════════════════════════════`);
+log(`🚀 GOD MODE: "${topic.substring(0, 50)}..."`);
+log(`🚀 Provider: ${store.selectedProvider} | Model: ${actualModel}`);
+log(`🚀 ═══════════════════════════════════════════════════════════`);
+
+// ✅ ADD THESE DEBUG LINES:
+log(`🔧 API Keys Status:`);
+log(`   → Primary AI: ${store.apiKeys[store.selectedProvider] ? '✅ SET' : '❌ MISSING'}`);
+log(`   → Serper: ${store.apiKeys.serper ? '✅ SET (' + store.apiKeys.serper.length + ' chars)' : '❌ MISSING — YouTube & References DISABLED'}`);
+log(`   → Internal Links: ${internalLinks.length} targets available`);
+
 
             // ═══════════════════════════════════════════════════════════════
             // PHASE 2: ENTITY GAP ANALYSIS
@@ -1346,35 +1354,7 @@ try {
                 if (contract.metaDescription) contract.metaDescription = enforceMeta(contract.metaDescription, log);
                 contract.htmlContent = removeDuplicateFAQSections(contract.htmlContent, log);
 
-                // Inject internal links
-                if (internalLinks.length > 0) {
-                    log(`🔗 Injecting internal links...`);
-                    
-                    try {
-                        const wpLinkTargets = await discoverInternalLinkTargets(
-                            store.wpConfig.url,
-                            auth,
-                            { excludePostId: postId || undefined, excludeUrls: [targetId], maxPosts: 100 },
-                            log
-                        );
-                        
-                        const allLinkTargets = [...wpLinkTargets, ...internalLinks.slice(0, 30)];
-                        
-                        const linkResult = injectInternalLinks(
-                            contract.htmlContent,
-                            allLinkTargets,
-                            targetId,
-                            { minLinks: 12, maxLinks: 20, minRelevance: 0.55 }
-                        );
-                        
-                        contract.htmlContent = linkResult.html;
-                        contract.internalLinks = linkResult.linksAdded;
-                        
-                        log(`   ✅ Injected ${linkResult.linksAdded.length} internal links`);
-                    } catch (linkErr: any) {
-                        log(`   ⚠️ Link injection failed: ${linkErr.message}`);
-                    }
-                }
+                
 
                 // Calculate word count
                 const finalDoc = new DOMParser().parseFromString(contract.htmlContent, 'text/html');
