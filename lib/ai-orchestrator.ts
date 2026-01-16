@@ -851,17 +851,8 @@ export async function discoverReferences(
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 INTERNAL LINK INJECTION — ENTERPRISE GRADE WITH FULL DEBUG
-// ═══════════════════════════════════════════════════════════════════════════════
 
-export function injectInternalLinksDistributed(
-    html: string,
-    linkTargets: InternalLinkTarget[],
-    currentUrl: string,
-    // ═══════════════════════════════════════════════════════════════════════════════
-// 🎯 SOTA CONTEXTUAL ANCHOR TEXT ENGINE - Enterprise Grade TF-IDF Implementation
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// SOTA Anchor Text Types
 interface AnchorCandidate {
   phrase: string;
   score: number;
@@ -871,6 +862,15 @@ interface AnchorCandidate {
   grammarScore: number;
 }
 
+// 🔗 INTERNAL LINK INJECTION — ENTERPRISE GRADE WITH FULL DEBUG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function injectInternalLinksDistributed(
+    html: string,
+    linkTargets: InternalLinkTarget[],
+    currentUrl: string,
+
+    ): InternalLinkResult {
 /**
  * SOTA TF-IDF based contextual anchor text finder
  * Generates 3-8 word high-quality anchor text that naturally fits the content
