@@ -47,11 +47,33 @@ import {
     createTimelineBox,
     createProgressTracker,
     escapeHtml,
-    generateUniqueId,
-    YouTubeVideoData,
-    DiscoveredReference,
-    CalloutType
+    generateUniqueId
 } from './visual-components';
+
+
+// Define types locally
+export interface YouTubeVideoData {
+    videoId: string;
+    title: string;
+    channel: string;
+    views: number;
+    duration?: string;
+    thumbnailUrl?: string;
+    embedUrl?: string;
+    relevanceScore?: number;
+}
+
+export interface DiscoveredReference {
+    url: string;
+    title: string;
+    source: string;
+    snippet?: string;
+    year?: string | number;
+    authorityScore?: number;
+    favicon?: string;
+}
+
+export type CalloutType = 'info' | 'success' | 'warning' | 'error';
 
 // Re-export for backwards compatibility
 export {
@@ -124,6 +146,29 @@ export const CONTENT_YEAR = currentMonth === 11 ? currentYear + 1 : currentYear;
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📊 TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════
+
+export interface YouTubeVideoData {
+    videoId: string;
+    title: string;
+    channel: string;
+    views: number;
+    duration?: string;
+    thumbnailUrl?: string;
+    embedUrl?: string;
+    relevanceScore?: number;
+}
+
+export interface DiscoveredReference {
+    url: string;
+    title: string;
+    source: string;
+    snippet?: string;
+    year?: string | number;
+    authorityScore?: number;
+    favicon?: string;
+}
+
+export type CalloutType = 'info' | 'success' | 'warning' | 'error';
 
 export interface StageProgress {
     stage: 'discovery' | 'generation' | 'enrichment' | 'finalization' | 'complete';
