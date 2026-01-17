@@ -1,75 +1,238 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// WP OPTIMIZER PRO v27.0 — ENTERPRISE SOTA UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════════
-// 
-// CRITICAL FIXES v27.0:
-// ✅ FIXED: Removed duplicate YouTube exports
-// ✅ FIXED: createDefaultSeoMetrics defined locally
-// ✅ H1 REMOVAL — Comprehensive H1 tag stripping
-// ✅ INTERNAL LINK INJECTION — Semantic matching with quality scoring
-// ✅ QA SWARM — 40+ validation rules
-// ✅ NLP COVERAGE — Term usage analysis
-// ✅ READABILITY — Flesch-Kincaid scoring
+// WP OPTIMIZER PRO v39.0 — ENTERPRISE UTILITY LIBRARY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { 
-    SitemapPage, 
-    SeoMetrics, 
-    QAValidationResult, 
-    QACategory, 
-    QAStatus,
-    ContentContract, 
-    EntityGapAnalysis, 
-    NeuronTerm,
-    InternalLinkTarget,
-    InternalLinkResult,
-    ValidatedReference,
-    FAQ
-} from './types';
+import { NeuronTerm, ContentContract, QAValidationResult } from './types';
+
+export const UTILS_VERSION = "39.0.0";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 📌 VERSION
+// 📊 SEO METRICS CALCULATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const UTILS_VERSION = "27.0.0";
+export function calculateFleschKincaid(text: string): number {
+    if (!text) return 0;
+    
+    const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const words = plainText.split(/\s+/).filter(w => w.length > 0);
+    
+    if (sentences.length === 0 || words.length === 0) return 0;
+    
+    // Count syllables (simplified)
+    const countSyllables = (word: string): number => {
+        word = word.toLowerCase();
+        if (word.length <= 3) return 1;
+        
+        word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+        word = word.replace(/^y/, '');
+        const syllables = word.match(/[aeiouy]{1,2}/g);
+        return syllables ? syllables.length : 1;
+    };
+    
+    const totalSyllables = words.reduce((sum, word) => sum + countSyllables(word), 0);
+    const avgWordsPerSentence = words.length / sentences.length;
+    const avgSyllablesPerWord = totalSyllables / words.length;
+    
+    // Flesch Reading Ease formula
+    const score = 206.835 - (1.015 * avgWordsPerSentence) - (84.6 * avgSyllablesPerWord);
+    
+    return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+export function calculateContentDepth(html: string): number {
+    if (!html) return 0;
+    
+    const wordCount = countWords(html);
+    const h2Count = (html.match(/<h2/gi) || []).length;
+    const h3Count = (html.match(/<h3/gi) || []).length;
+    const listCount = (html.match(/<(ul|ol)/gi) || []).length;
+    const tableCount = (html.match(/<table/gi) || []).length;
+    
+    let score = 0;
+    
+    // Word count scoring
+    if (wordCount >= 4500) score += 40;
+    else if (wordCount >= 3000) score += 30;
+    else if (wordCount >= 2000) score += 20;
+    else score += 10;
+    
+    // Structure scoring
+    score += Math.min(20, h2Count * 2);
+    score += Math.min(15, h3Count * 1.5);
+    score += Math.min(10, listCount * 2);
+    score += Math.min(15, tableCount * 5);
+    
+    return Math.min(100, Math.round(score));
+}
+
+export function calculateHeadingStructure(html: string): number {
+    if (!html) return 0;
+    
+    const h1Count = (html.match(/<h1/gi) || []).length;
+    const h2Count = (html.match(/<h2/gi) || []).length;
+    const h3Count = (html.match(/<h3/gi) || []).length;
+    
+    let score = 100;
+    
+    // Penalize H1 tags (WordPress should handle title)
+    if (h1Count > 0) score -= h1Count * 10;
+    
+    // Check H2 count
+    if (h2Count < 5) score -= 15;
+    else if (h2Count > 15) score -= 10;
+    
+    // Check H3 count
+    if (h3Count < 3) score -= 10;
+    
+    // Hierarchy check
+    if (h2Count > 0 && h3Count < h2Count / 2) score -= 10;
+    
+    return Math.max(0, Math.min(100, score));
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔧 FACTORY FUNCTIONS
+// 🧬 NLP COVERAGE ANALYSIS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function createDefaultSeoMetrics(): SeoMetrics {
+export interface NLPCoverageResult {
+    score: number;
+    weightedScore: number;
+    totalTerms: number;
+    usedTerms: number;
+    missingTerms: NeuronTerm[];
+    usedDetails: Array<NeuronTerm & { count: number }>;
+}
+
+export function calculateNLPCoverage(
+    content: string,
+    terms: NeuronTerm[]
+): NLPCoverageResult {
+    if (!content || terms.length === 0) {
+        return {
+            score: 100,
+            weightedScore: 100,
+            totalTerms: 0,
+            usedTerms: 0,
+            missingTerms: [],
+            usedDetails: []
+        };
+    }
+    
+    const contentLower = content.toLowerCase();
+    const usedDetails: Array<NeuronTerm & { count: number }> = [];
+    const missingTerms: NeuronTerm[] = [];
+    
+    let totalWeight = 0;
+    let usedWeight = 0;
+    
+    for (const term of terms) {
+        const termLower = term.term.toLowerCase();
+        const escaped = termLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+        const matches = contentLower.match(regex);
+        const count = matches?.length || 0;
+        
+        const weight = term.importance || 50;
+        totalWeight += weight;
+        
+        if (count > 0) {
+            usedDetails.push({ ...term, count });
+            usedWeight += weight;
+        } else {
+            missingTerms.push(term);
+        }
+    }
+    
+    const score = terms.length > 0
+        ? Math.round((usedDetails.length / terms.length) * 100)
+        : 100;
+    
+    const weightedScore = totalWeight > 0
+        ? Math.round((usedWeight / totalWeight) * 100)
+        : 100;
+    
     return {
-        wordCount: 0,
-        contentDepth: 0,
-        readability: 0,
-        headingStructure: 0,
-        aeoScore: 0,
-        geoScore: 0,
-        eeatSignals: 0,
-        internalLinkScore: 0,
-        schemaDetected: false,
-        schemaTypes: [],
-        h2Count: 0,
-        h3Count: 0,
-        imageCount: 0,
-        faqCount: 0
+        score,
+        weightedScore,
+        totalTerms: terms.length,
+        usedTerms: usedDetails.length,
+        missingTerms,
+        usedDetails
     };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 📏 TEXT UTILITIES
+// 🔗 ANCHOR TEXT VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const BAD_ANCHORS = [
+    'click here', 'read more', 'learn more', 'check out', 'find out',
+    'this article', 'this post', 'this guide', 'click this', 'see here',
+    'more info', 'details here', 'link', 'here', 'this'
+];
+
+export function validateAnchorQuality(anchorText: string): { score: number; issues: string[] } {
+    const issues: string[] = [];
+    let score = 100;
+    
+    if (!anchorText) {
+        return { score: 0, issues: ['Empty anchor text'] };
+    }
+    
+    const wordCount = anchorText.trim().split(/\s+/).length;
+    
+    // Word count check (3-7 words ideal)
+    if (wordCount < 3) {
+        score -= 30;
+        issues.push('Too few words (minimum 3)');
+    } else if (wordCount > 7) {
+        score -= 15;
+        issues.push('Too many words (maximum 7)');
+    }
+    
+    // Character length check (15-60 chars)
+    if (anchorText.length < 15) {
+        score -= 20;
+        issues.push('Too short (minimum 15 chars)');
+    } else if (anchorText.length > 60) {
+        score -= 10;
+        issues.push('Too long (maximum 60 chars)');
+    }
+    
+    // Bad anchor patterns
+    const anchorLower = anchorText.toLowerCase();
+    for (const bad of BAD_ANCHORS) {
+        if (anchorLower.includes(bad)) {
+            score -= 40;
+            issues.push(`Contains generic phrase: "${bad}"`);
+            break;
+        }
+    }
+    
+    // Starts with stop word
+    const firstWord = anchorText.split(/\s+/)[0]?.toLowerCase();
+    const stopWords = ['the', 'a', 'an', 'this', 'that', 'these', 'those', 'to', 'for'];
+    if (stopWords.includes(firstWord)) {
+        score -= 15;
+        issues.push('Starts with stop word');
+    }
+    
+    return { score: Math.max(0, score), issues };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📝 CONTENT UTILITIES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function countWords(text: string): number {
     if (!text) return 0;
-    const stripped = text.replace(/<[^>]*>/g, ' ');
-    return stripped.split(/\s+/).filter(w => w.length > 0).length;
+    return text.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(w => w.length > 0).length;
 }
 
 export function stripHtml(html: string): string {
     if (!html) return '';
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body?.textContent || '';
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 export function escapeHtml(str: string): string {
@@ -82,667 +245,194 @@ export function escapeHtml(str: string): string {
         .replace(/'/g, '&#039;');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 URL & SLUG UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function extractSlugFromUrl(url: string): string {
-    try {
-        const parsed = new URL(url);
-        const pathParts = parsed.pathname.split('/').filter(Boolean);
-        return pathParts[pathParts.length - 1] || '';
-    } catch {
-        return url.split('/').filter(Boolean).pop() || '';
-    }
+export function truncate(str: string, max: number): string {
+    if (!str || str.length <= max) return str || '';
+    return str.substring(0, max - 3) + '...';
 }
 
-export function sanitizeSlug(slug: string): string {
-    return slug
+export function slugify(text: string): string {
+    return text
         .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 }
 
-export function sanitizeTitle(title: string, fallbackSlug?: string): string {
-    if (title && title.length > 3 && title.toLowerCase() !== 'home') {
-        return title.trim();
-    }
-    
-    if (fallbackSlug) {
-        return fallbackSlug
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, l => l.toUpperCase())
-            .trim();
-    }
-    
-    return 'Untitled Page';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ⏱️ TIME UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-    const mins = Math.floor(ms / 60000);
-    const secs = Math.round((ms % 60000) / 1000);
-    return `${mins}m ${secs}s`;
-}
-
-export function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📊 OPPORTUNITY SCORING
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function calculateOpportunityScore(
-    title: string, 
-    wordCount: number | null
-): { total: number; titleScore: number; lengthScore: number; freshness: number } {
-    let titleScore = 50;
-    let lengthScore = 50;
-    let freshness = 50;
-    
-    if (title) {
-        const titleLength = title.length;
-        if (titleLength >= 50 && titleLength <= 60) titleScore = 100;
-        else if (titleLength >= 40 && titleLength <= 70) titleScore = 80;
-        else if (titleLength < 30 || titleLength > 80) titleScore = 30;
-    }
-    
-    if (wordCount !== null) {
-        if (wordCount >= 4000) lengthScore = 100;
-        else if (wordCount >= 2500) lengthScore = 80;
-        else if (wordCount >= 1500) lengthScore = 60;
-        else if (wordCount >= 800) lengthScore = 40;
-        else lengthScore = 20;
-    }
-    
-    const total = Math.round((titleScore * 0.3) + (lengthScore * 0.5) + (freshness * 0.2));
-    
-    return { total, titleScore, lengthScore, freshness };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔥 H1 TAG REMOVAL — CRITICAL
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function removeAllH1Tags(html: string, log?: (msg: string) => void): string {
-    if (!html) return html;
-    
-    const h1CountBefore = (html.match(/<h1/gi) || []).length;
-    
-    if (h1CountBefore === 0) {
-        log?.(`   ✓ No H1 tags found`);
-        return html;
-    }
-    
-    log?.(`   ⚠️ Removing ${h1CountBefore} H1 tag(s)...`);
-    
-    let cleaned = html;
-    
-    const patterns = [
-        /<h1[^>]*>[\s\S]*?<\/h1>/gi,
-        /<h1[^>]*\/>/gi,
-        /<H1[^>]*>[\s\S]*?<\/H1>/g,
-    ];
-    
-    for (let pass = 0; pass < 3; pass++) {
-        for (const pattern of patterns) {
-            cleaned = cleaned.replace(pattern, '');
-        }
-    }
-    
-    cleaned = cleaned.replace(/<h1\b[^>]*>/gi, '');
-    cleaned = cleaned.replace(/<\/h1>/gi, '');
-    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
-    
-    const h1CountAfter = (cleaned.match(/<h1/gi) || []).length;
-    
-    if (h1CountAfter > 0) {
-        log?.(`   ❌ ${h1CountAfter} H1 tag(s) still present — forcing conversion to H2`);
-        cleaned = cleaned.replace(/h1/gi, 'h2');
-    } else {
-        log?.(`   ✓ Removed ${h1CountBefore} H1 tag(s)`);
-    }
-    
-    return cleaned;
-}
-
-export function validateNoH1(html: string): { valid: boolean; count: number } {
-    const h1Count = (html.match(/<h1[^>]*>/gi) || []).length;
-    return { valid: h1Count === 0, count: h1Count };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📈 SEO METRICS CALCULATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function calculateSeoMetrics(
-    html: string,
-    title: string,
-    slug: string
-): SeoMetrics {
-    const metrics = createDefaultSeoMetrics();
-    
-    if (!html) return metrics;
-    
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const text = doc.body?.textContent || '';
-    
-    metrics.wordCount = text.split(/\s+/).filter(Boolean).length;
-    metrics.h2Count = doc.querySelectorAll('h2').length;
-    metrics.h3Count = doc.querySelectorAll('h3').length;
-    metrics.imageCount = doc.querySelectorAll('img').length;
-    
-    const faqIndicators = ['frequently asked', 'faq', '❓'];
-    metrics.faqCount = faqIndicators.reduce((count, indicator) => {
-        return count + (html.toLowerCase().includes(indicator) ? 1 : 0);
-    }, 0);
-    
-    const depthFactors = [
-        metrics.wordCount >= 3000 ? 25 : (metrics.wordCount / 3000) * 25,
-        metrics.h2Count >= 8 ? 20 : (metrics.h2Count / 8) * 20,
-        metrics.h3Count >= 15 ? 20 : (metrics.h3Count / 15) * 20,
-        metrics.imageCount >= 5 ? 15 : (metrics.imageCount / 5) * 15,
-        doc.querySelectorAll('ul, ol').length >= 5 ? 10 : 0,
-        doc.querySelectorAll('table').length >= 1 ? 10 : 0,
-    ];
-    metrics.contentDepth = Math.min(100, Math.round(depthFactors.reduce((a, b) => a + b, 0)));
-    
+export function extractExcerpt(html: string, maxLength: number = 160): string {
+    const text = stripHtml(html);
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const avgWordsPerSentence = metrics.wordCount / Math.max(1, sentences.length);
     
-    if (avgWordsPerSentence <= 15) metrics.readability = 90;
-    else if (avgWordsPerSentence <= 20) metrics.readability = 80;
-    else if (avgWordsPerSentence <= 25) metrics.readability = 70;
-    else if (avgWordsPerSentence <= 30) metrics.readability = 60;
-    else metrics.readability = 50;
-    
-    const h1Count = doc.querySelectorAll('h1').length;
-    if (h1Count === 0 && metrics.h2Count >= 5 && metrics.h3Count >= 10) {
-        metrics.headingStructure = 100;
-    } else if (h1Count === 0 && metrics.h2Count >= 3) {
-        metrics.headingStructure = 80;
-    } else if (h1Count > 0) {
-        metrics.headingStructure = Math.max(0, 60 - (h1Count * 20));
-    } else {
-        metrics.headingStructure = 60;
+    let excerpt = '';
+    for (const sentence of sentences) {
+        if ((excerpt + sentence).length > maxLength) break;
+        excerpt += sentence.trim() + '. ';
     }
     
-    const aeoFactors = [
-        html.includes('quick answer') || html.includes('Quick Answer') ? 20 : 0,
-        metrics.faqCount > 0 ? 25 : 0,
-        doc.querySelectorAll('details, summary').length > 0 ? 15 : 0,
-        doc.querySelectorAll('table').length > 0 ? 15 : 0,
-        metrics.h3Count >= 10 ? 15 : 0,
-        doc.querySelectorAll('ul, ol').length >= 5 ? 10 : 0,
-    ];
-    metrics.aeoScore = Math.min(100, aeoFactors.reduce((a, b) => a + b, 0));
-    
-    const geoFactors = [
-        metrics.wordCount >= 4000 ? 30 : (metrics.wordCount / 4000) * 30,
-        metrics.contentDepth >= 80 ? 25 : (metrics.contentDepth / 80) * 25,
-        metrics.h2Count >= 8 ? 20 : (metrics.h2Count / 8) * 20,
-        metrics.imageCount >= 3 ? 15 : (metrics.imageCount / 3) * 15,
-        doc.querySelectorAll('blockquote').length > 0 ? 10 : 0,
-    ];
-    metrics.geoScore = Math.min(100, Math.round(geoFactors.reduce((a, b) => a + b, 0)));
-    
-    const eeatPhrases = [
-        'according to', 'research shows', 'studies indicate', 'experts recommend',
-        'peer-reviewed', 'published in', 'data suggests', 'analysis reveals'
-    ];
-    const textLower = text.toLowerCase();
-    const eeatCount = eeatPhrases.filter(phrase => textLower.includes(phrase)).length;
-    metrics.eeatSignals = Math.min(100, eeatCount * 12);
-    
-    const internalLinks = doc.querySelectorAll('a[href^="/"], a[href*="' + (slug || 'internal') + '"]');
-    metrics.internalLinkScore = Math.min(100, internalLinks.length * 5);
-    
-    const schemaScripts = doc.querySelectorAll('script[type="application/ld+json"]');
-    metrics.schemaDetected = schemaScripts.length > 0 || 
-        html.includes('itemtype="https://schema.org') ||
-        html.includes('FAQPage');
-    
-    if (metrics.schemaDetected) {
-        const schemaTypes: string[] = [];
-        if (html.includes('FAQPage')) schemaTypes.push('FAQPage');
-        if (html.includes('Article') || html.includes('NewsArticle')) schemaTypes.push('Article');
-        if (html.includes('BreadcrumbList')) schemaTypes.push('BreadcrumbList');
-        if (html.includes('VideoObject')) schemaTypes.push('VideoObject');
-        metrics.schemaTypes = schemaTypes;
-    }
-    
-    return metrics;
+    return excerpt.trim() || truncate(text, maxLength);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔍 EXISTING CONTENT ANALYSIS
+// 📊 SCHEMA GENERATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export interface ExistingContentAnalysis {
-    wordCount: number;
-    imageCount: number;
-    hasFAQ: boolean;
-    hasSchema: boolean;
-    headingCount: number;
-    internalLinkCount: number;
-    externalLinkCount: number;
-    readabilityScore?: number;
+export function generateArticleSchema(
+    title: string,
+    description: string,
+    author: string,
+    url: string,
+    imageUrl?: string,
+    datePublished?: string,
+    dateModified?: string
+): object {
+    const now = new Date().toISOString();
+    
+    return {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": title,
+        "description": description,
+        "author": {
+            "@type": "Person",
+            "name": author
+        },
+        "datePublished": datePublished || now,
+        "dateModified": dateModified || now,
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": url
+        },
+        ...(imageUrl && {
+            "image": {
+                "@type": "ImageObject",
+                "url": imageUrl
+            }
+        })
+    };
 }
 
-export function analyzeExistingContent(html: string): ExistingContentAnalysis {
-    if (!html) {
-        return {
-            wordCount: 0,
-            imageCount: 0,
-            hasFAQ: false,
-            hasSchema: false,
-            headingCount: 0,
-            internalLinkCount: 0,
-            externalLinkCount: 0
-        };
-    }
+export function generateFAQSchema(faqs: Array<{ question: string; answer: string }>): object {
+    return {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": faqs.map(faq => ({
+            "@type": "Question",
+            "name": faq.question,
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.answer.replace(/<[^>]*>/g, '')
+            }
+        }))
+    };
+}
+
+export function generateBreadcrumbSchema(
+    items: Array<{ name: string; url: string }>
+): object {
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": items.map((item, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "name": item.name,
+            "item": item.url
+        }))
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ✅ QA VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function runQAValidation(
+    contract: ContentContract,
+    neuronTerms: NeuronTerm[] = []
+): QAValidationResult[] {
+    const results: QAValidationResult[] = [];
+    const html = contract.htmlContent || '';
+    const wordCount = countWords(html);
     
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const text = doc.body?.textContent || '';
-    
-    const wordCount = text.split(/\s+/).filter(Boolean).length;
-    const imageCount = doc.querySelectorAll('img').length;
-    const headingCount = doc.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
-    
-    const allLinks = doc.querySelectorAll('a[href]');
-    let internalLinkCount = 0;
-    let externalLinkCount = 0;
-    
-    allLinks.forEach(link => {
-        const href = link.getAttribute('href') || '';
-        if (href.startsWith('/') || href.startsWith('#')) {
-            internalLinkCount++;
-        } else if (href.startsWith('http')) {
-            externalLinkCount++;
-        }
+    // Critical: Word Count
+    results.push({
+        agent: 'Word Count',
+        category: 'critical',
+        status: wordCount >= 3000 ? 'passed' : wordCount >= 2000 ? 'warning' : 'failed',
+        score: Math.min(100, Math.round((wordCount / 4500) * 100)),
+        feedback: `Content has ${wordCount.toLocaleString()} words (target: 4,500+)`,
+        fixSuggestion: wordCount < 3000 ? 'Add more comprehensive content sections' : undefined
     });
     
-    const hasFAQ = html.toLowerCase().includes('frequently asked') ||
-                   html.toLowerCase().includes('faq') ||
-                   html.includes('FAQPage');
-    
-    const hasSchema = html.includes('application/ld+json') ||
-                      html.includes('itemtype="https://schema.org');
-    
-    return {
-        wordCount,
-        imageCount,
-        hasFAQ,
-        hasSchema,
-        headingCount,
-        internalLinkCount,
-        externalLinkCount
-    };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 INTERNAL LINK INJECTION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface InternalLinkInjectionOptions {
-    minLinks?: number;
-    maxLinks?: number;
-    minRelevance?: number;
-    minDistanceBetweenLinks?: number;
-    maxLinksPerSection?: number;
-}
-
-export interface InternalLinkInjectionResult {
-    html: string;
-    linksAdded: InternalLinkResult[];
-    totalLinks: number;
-}
-
-export function injectInternalLinks(
-    html: string,
-    linkTargets: InternalLinkTarget[],
-    currentUrl: string,
-    options: InternalLinkInjectionOptions = {}
-): InternalLinkInjectionResult {
-    const {
-        minLinks = 10,
-        maxLinks = 20,
-        minRelevance = 0.5,
-        minDistanceBetweenLinks = 400,
-        maxLinksPerSection = 2
-    } = options;
-    
-    if (!html || !linkTargets || linkTargets.length === 0) {
-        return { html, linksAdded: [], totalLinks: 0 };
-    }
-    
-    const linksAdded: InternalLinkResult[] = [];
-    let modifiedHtml = html;
-    let lastLinkPosition = 0;
-    
-    const availableTargets = linkTargets.filter(t => 
-        t.url !== currentUrl && 
-        !t.url.includes(extractSlugFromUrl(currentUrl))
-    );
-    
-    const paragraphRegex = /<p[^>]*>([^<]{100,})<\/p>/gi;
-    const paragraphs: Array<{ match: string; text: string; index: number }> = [];
-    let match;
-    
-    while ((match = paragraphRegex.exec(html)) !== null) {
-        paragraphs.push({
-            match: match[0],
-            text: match[1],
-            index: match.index
-        });
-    }
-    
-    for (const target of availableTargets) {
-        if (linksAdded.length >= maxLinks) break;
-        
-        for (const para of paragraphs) {
-            if (para.index - lastLinkPosition < minDistanceBetweenLinks) continue;
-            
-            const relevance = calculateLinkRelevance(para.text, target);
-            
-            if (relevance >= minRelevance) {
-                const anchorText = generateAnchorText(para.text, target);
-                
-                if (anchorText && anchorText.split(/\s+/).length >= 3) {
-                    if (para.text.toLowerCase().includes(anchorText.toLowerCase())) {
-                        const link = `<a href="${target.url}" title="${escapeHtml(target.title)}">${anchorText}</a>`;
-                        
-                        const escapedAnchor = anchorText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const anchorRegex = new RegExp(`\\b${escapedAnchor}\\b`, 'i');
-                        
-                        const newPara = para.match.replace(anchorRegex, link);
-                        
-                        if (newPara !== para.match) {
-                            modifiedHtml = modifiedHtml.replace(para.match, newPara);
-                            
-                            linksAdded.push({
-                                url: target.url,
-                                anchorText,
-                                relevanceScore: relevance,
-                                position: para.index
-                            });
-                            
-                            lastLinkPosition = para.index;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    return {
-        html: modifiedHtml,
-        linksAdded,
-        totalLinks: linksAdded.length
-    };
-}
-
-function calculateLinkRelevance(paragraphText: string, target: InternalLinkTarget): number {
-    const textLower = paragraphText.toLowerCase();
-    const titleLower = target.title.toLowerCase();
-    const slugWords = target.slug.replace(/-/g, ' ').toLowerCase().split(/\s+/);
-    
-    let score = 0;
-    
-    const titleWords = titleLower.split(/\s+/).filter(w => w.length > 3);
-    const matchingTitleWords = titleWords.filter(w => textLower.includes(w));
-    score += (matchingTitleWords.length / Math.max(1, titleWords.length)) * 0.5;
-    
-    const matchingSlugWords = slugWords.filter(w => w.length > 3 && textLower.includes(w));
-    score += (matchingSlugWords.length / Math.max(1, slugWords.length)) * 0.3;
-    
-    if (target.keywords) {
-        const matchingKeywords = target.keywords.filter(k => textLower.includes(k.toLowerCase()));
-        score += (matchingKeywords.length / Math.max(1, target.keywords.length)) * 0.2;
-    }
-    
-    return Math.min(1, score);
-}
-
-function generateAnchorText(paragraphText: string, target: InternalLinkTarget): string {
-    const titleWords = target.title.split(/\s+/);
-    
-    for (let len = 5; len >= 3; len--) {
-        for (let start = 0; start <= titleWords.length - len; start++) {
-            const phrase = titleWords.slice(start, start + len).join(' ');
-            if (paragraphText.toLowerCase().includes(phrase.toLowerCase())) {
-                return phrase;
-            }
-        }
-    }
-    
-    return titleWords.slice(0, 4).join(' ');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ✅ QA SWARM VALIDATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface QASwarmResult {
-    score: number;
-    results: QAValidationResult[];
-    passed: boolean;
-    criticalFails: number;
-}
-
-export function runQASwarm(
-    contract: ContentContract,
-    entityGapData?: EntityGapAnalysis,
-    neuronTerms?: NeuronTerm[]
-): QASwarmResult {
-    const results: QAValidationResult[] = [];
-    
-    const html = contract.htmlContent || '';
-    const wordCount = contract.wordCount || countWords(html);
-    
-    // CRITICAL RULES
+    // Critical: No H1 Tags
     const h1Count = (html.match(/<h1/gi) || []).length;
     results.push({
-        agent: 'H1 Validator',
+        agent: 'H1 Tags',
         category: 'critical',
         status: h1Count === 0 ? 'passed' : 'failed',
         score: h1Count === 0 ? 100 : 0,
-        feedback: h1Count === 0 
-            ? 'No H1 tags found — WordPress provides title' 
-            : `Found ${h1Count} H1 tag(s) — must remove`,
+        feedback: h1Count === 0 ? 'No H1 tags (correct - WordPress handles title)' : `Found ${h1Count} H1 tag(s) - should be removed`,
         fixSuggestion: h1Count > 0 ? 'Remove all H1 tags from content' : undefined
     });
     
-    const minWords = 3000;
-    results.push({
-        agent: 'Word Count Validator',
-        category: 'critical',
-        status: wordCount >= minWords ? 'passed' : 'failed',
-        score: Math.min(100, (wordCount / minWords) * 100),
-        feedback: `${wordCount.toLocaleString()} words (minimum: ${minWords.toLocaleString()})`,
-        fixSuggestion: wordCount < minWords ? `Add ${minWords - wordCount} more words` : undefined
-    });
-    
-    results.push({
-        agent: 'Content Validator',
-        category: 'critical',
-        status: html.length > 5000 ? 'passed' : 'failed',
-        score: html.length > 5000 ? 100 : Math.min(100, (html.length / 5000) * 100),
-        feedback: html.length > 5000 ? 'Sufficient HTML content' : 'HTML content too short',
-        fixSuggestion: html.length < 5000 ? 'Generate more comprehensive content' : undefined
-    });
-    
-    // SEO RULES
+    // SEO: Heading Structure
     const h2Count = (html.match(/<h2/gi) || []).length;
-    results.push({
-        agent: 'H2 Structure',
-        category: 'seo',
-        status: h2Count >= 8 ? 'passed' : h2Count >= 5 ? 'warning' : 'failed',
-        score: Math.min(100, (h2Count / 8) * 100),
-        feedback: `${h2Count} H2 headings (target: 8+)`,
-        fixSuggestion: h2Count < 8 ? `Add ${8 - h2Count} more H2 sections` : undefined
-    });
-    
     const h3Count = (html.match(/<h3/gi) || []).length;
     results.push({
-        agent: 'H3 Structure',
+        agent: 'Heading Structure',
         category: 'seo',
-        status: h3Count >= 15 ? 'passed' : h3Count >= 8 ? 'warning' : 'failed',
-        score: Math.min(100, (h3Count / 15) * 100),
-        feedback: `${h3Count} H3 headings (target: 15+)`,
-        fixSuggestion: h3Count < 15 ? 'Add more H3 subsections' : undefined
+        status: h2Count >= 8 && h3Count >= 5 ? 'passed' : 'warning',
+        score: Math.min(100, (h2Count * 8) + (h3Count * 5)),
+        feedback: `${h2Count} H2 headings, ${h3Count} H3 headings`,
+        fixSuggestion: h2Count < 8 ? 'Add more H2 section headings' : undefined
     });
     
-    const internalLinkCount = contract.internalLinks?.length || 0;
+    // SEO: Readability
+    const readability = calculateFleschKincaid(html);
     results.push({
-        agent: 'Internal Links',
+        agent: 'Readability',
         category: 'seo',
-        status: internalLinkCount >= 12 ? 'passed' : internalLinkCount >= 6 ? 'warning' : 'failed',
-        score: Math.min(100, (internalLinkCount / 12) * 100),
-        feedback: `${internalLinkCount} internal links (target: 12+)`,
-        fixSuggestion: internalLinkCount < 12 ? 'Add more contextual internal links' : undefined
+        status: readability >= 60 ? 'passed' : readability >= 40 ? 'warning' : 'failed',
+        score: readability,
+        feedback: `Flesch Reading Ease: ${readability}% (target: 60+)`,
+        fixSuggestion: readability < 60 ? 'Simplify sentence structure and use shorter words' : undefined
     });
     
-    // AEO RULES
-    const hasFAQ = html.toLowerCase().includes('frequently asked') || 
-                   html.includes('FAQPage') ||
-                   html.includes('❓');
+    // AEO: FAQ Presence
+    const hasFAQ = html.includes('FAQPage') || html.includes('Frequently Asked');
     results.push({
         agent: 'FAQ Section',
         category: 'aeo',
-        status: hasFAQ ? 'passed' : 'failed',
-        score: hasFAQ ? 100 : 0,
-        feedback: hasFAQ ? 'FAQ section detected' : 'Missing FAQ section',
-        fixSuggestion: !hasFAQ ? 'Add FAQ section with 7-10 questions' : undefined
+        status: hasFAQ ? 'passed' : 'warning',
+        score: hasFAQ ? 100 : 40,
+        feedback: hasFAQ ? 'FAQ section with schema detected' : 'No FAQ section found',
+        fixSuggestion: !hasFAQ ? 'Add a FAQ section with schema markup' : undefined
     });
     
-    const faqCount = contract.faqs?.length || 0;
-    results.push({
-        agent: 'FAQ Count',
-        category: 'aeo',
-        status: faqCount >= 7 ? 'passed' : faqCount >= 5 ? 'warning' : 'failed',
-        score: Math.min(100, (faqCount / 7) * 100),
-        feedback: `${faqCount} FAQ items (target: 7+)`,
-        fixSuggestion: faqCount < 7 ? `Add ${7 - faqCount} more FAQ questions` : undefined
-    });
-    
-    const hasQuickAnswer = html.toLowerCase().includes('quick answer');
-    results.push({
-        agent: 'Quick Answer Box',
-        category: 'aeo',
-        status: hasQuickAnswer ? 'passed' : 'warning',
-        score: hasQuickAnswer ? 100 : 50,
-        feedback: hasQuickAnswer ? 'Quick Answer box present' : 'Consider adding Quick Answer box',
-        fixSuggestion: !hasQuickAnswer ? 'Add Quick Answer box at top of content' : undefined
-    });
-    
-    // GEO RULES
-    const hasSchema = html.includes('FAQPage') || 
-                      html.includes('itemtype="https://schema.org') ||
-                      html.includes('application/ld+json');
+    // GEO: Schema Markup
+    const hasSchema = html.includes('application/ld+json');
     results.push({
         agent: 'Schema Markup',
         category: 'geo',
         status: hasSchema ? 'passed' : 'failed',
         score: hasSchema ? 100 : 0,
-        feedback: hasSchema ? 'Schema markup detected' : 'Missing schema markup',
-        fixSuggestion: !hasSchema ? 'Add FAQPage and Article schema' : undefined
+        feedback: hasSchema ? 'Structured data detected' : 'No schema markup found',
+        fixSuggestion: !hasSchema ? 'Add JSON-LD schema markup' : undefined
     });
     
-    const eeatPhrases = ['according to', 'research shows', 'experts recommend', 'studies indicate'];
-    const textLower = stripHtml(html).toLowerCase();
-    const eeatCount = eeatPhrases.filter(p => textLower.includes(p)).length;
-    results.push({
-        agent: 'E-E-A-T Signals',
-        category: 'geo',
-        status: eeatCount >= 5 ? 'passed' : eeatCount >= 3 ? 'warning' : 'failed',
-        score: Math.min(100, (eeatCount / 5) * 100),
-        feedback: `${eeatCount} E-E-A-T signal phrases (target: 5+)`,
-        fixSuggestion: eeatCount < 5 ? 'Add more authority phrases and citations' : undefined
-    });
+    // NLP Coverage (if terms provided)
+    if (neuronTerms.length > 0) {
+        const nlpResult = calculateNLPCoverage(html, neuronTerms);
+        results.push({
+            agent: 'NLP Coverage',
+            category: 'seo',
+            status: nlpResult.score >= 70 ? 'passed' : nlpResult.score >= 50 ? 'warning' : 'failed',
+            score: nlpResult.score,
+            feedback: `${nlpResult.usedTerms}/${nlpResult.totalTerms} terms used (${nlpResult.score}%)`,
+            fixSuggestion: nlpResult.score < 70 ? `Add missing terms: ${nlpResult.missingTerms.slice(0, 5).map(t => t.term).join(', ')}` : undefined
+        });
+    }
     
-    // ENHANCEMENT RULES
-    const listCount = (html.match(/<ul|<ol/gi) || []).length;
-    results.push({
-        agent: 'List Elements',
-        category: 'enhancement',
-        status: listCount >= 5 ? 'passed' : listCount >= 3 ? 'warning' : 'failed',
-        score: Math.min(100, (listCount / 5) * 100),
-        feedback: `${listCount} lists (target: 5+)`,
-        fixSuggestion: listCount < 5 ? 'Add more bulleted/numbered lists' : undefined
-    });
-    
-    const tableCount = (html.match(/<table/gi) || []).length;
-    results.push({
-        agent: 'Tables',
-        category: 'enhancement',
-        status: tableCount >= 2 ? 'passed' : tableCount >= 1 ? 'warning' : 'failed',
-        score: tableCount >= 2 ? 100 : tableCount * 50,
-        feedback: `${tableCount} tables (target: 2+)`,
-        fixSuggestion: tableCount < 2 ? 'Add comparison tables for better AEO' : undefined
-    });
-    
-    // YouTube Video Check
-    const hasVideo = html.includes('youtube.com/embed') || html.includes('youtu.be');
-    results.push({
-        agent: 'Video Content',
-        category: 'enhancement',
-        status: hasVideo ? 'passed' : 'warning',
-        score: hasVideo ? 100 : 50,
-        feedback: hasVideo ? 'YouTube video embedded' : 'Consider adding relevant video',
-        fixSuggestion: !hasVideo ? 'Embed a relevant YouTube video' : undefined
-    });
-    
-    // References Check
-    const hasReferences = html.toLowerCase().includes('references') || 
-                          html.toLowerCase().includes('sources') ||
-                          html.includes('📚');
-    results.push({
-        agent: 'References Section',
-        category: 'enhancement',
-        status: hasReferences ? 'passed' : 'warning',
-        score: hasReferences ? 100 : 50,
-        feedback: hasReferences ? 'References section detected' : 'Consider adding references',
-        fixSuggestion: !hasReferences ? 'Add authoritative references section' : undefined
-    });
-    
-    // Calculate overall score
-    const totalScore = results.reduce((sum, r) => sum + r.score, 0);
-    const avgScore = Math.round(totalScore / results.length);
-    const criticalFails = results.filter(r => r.category === 'critical' && r.status === 'failed').length;
-    
-    return {
-        score: avgScore,
-        results,
-        passed: avgScore >= 65 && criticalFails === 0,
-        criticalFails
-    };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔧 CLASSNAME UTILITY
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function cn(...classes: (string | boolean | undefined | null)[]): string {
-    return classes.filter(Boolean).join(' ');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📊 NUMBER FORMATTING
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function formatNumber(num: number): string {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
+    return results;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -751,22 +441,19 @@ export function formatNumber(num: number): string {
 
 export default {
     UTILS_VERSION,
-    createDefaultSeoMetrics,
+    calculateFleschKincaid,
+    calculateContentDepth,
+    calculateHeadingStructure,
+    calculateNLPCoverage,
+    validateAnchorQuality,
     countWords,
     stripHtml,
     escapeHtml,
-    extractSlugFromUrl,
-    sanitizeSlug,
-    sanitizeTitle,
-    formatDuration,
-    sleep,
-    calculateOpportunityScore,
-    removeAllH1Tags,
-    validateNoH1,
-    calculateSeoMetrics,
-    analyzeExistingContent,
-    injectInternalLinks,
-    runQASwarm,
-    cn,
-    formatNumber
+    truncate,
+    slugify,
+    extractExcerpt,
+    generateArticleSchema,
+    generateFAQSchema,
+    generateBreadcrumbSchema,
+    runQAValidation
 };
