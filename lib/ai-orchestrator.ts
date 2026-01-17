@@ -1,17 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// WP OPTIMIZER PRO v36.0 — ULTIMATE ENTERPRISE AI ORCHESTRATOR
+// WP OPTIMIZER PRO v38.0 — ULTIMATE ENTERPRISE AI ORCHESTRATOR
 // ═══════════════════════════════════════════════════════════════════════════════
 // 
-// ENTERPRISE FEATURES:
-// ✅ 5-Phase Pipeline: Discovery → Generation → Enrichment → Linking → Delivery
-// ✅ Promise.allSettled: Bulletproof parallel task handling
-// ✅ 25+ Visual Components: Injected via Content Breathing Engine
-// ✅ Semantic Link Matching: NLP-lite anchor text (NO generic fallbacks)
-// ✅ JSON Healing: 5-strategy recovery for malformed LLM responses
-// ✅ Circuit Breaker: Fails fast on repeated API errors
-// ✅ Multi-Provider: Google, OpenRouter, OpenAI, Anthropic, Groq
-// ✅ Schema.org: FAQ, HowTo, VideoObject structured data
-// ✅ Zero-CLS YouTube: Lite embed with click-to-load
+// CRITICAL FIX: generateEnhanced() method was MISSING — now included
+// 
+// COMPLETE FEATURE SET:
+// ✅ generateEnhanced() — Staged pipeline with outline → sections → merge
+// ✅ generateSingleShot() — Single-shot generation with visual injection
+// ✅ generate() — Default entry point (calls generateEnhanced)
+// ✅ 25+ Visual Components — Injected via Content Breathing Engine
+// ✅ YouTube Discovery — Serper.dev powered video search & embedding
+// ✅ Reference Discovery — Authority-scored citation system
+// ✅ Internal Link Injection — Semantic NLP-lite anchor matching
+// ✅ JSON Healing — 5-strategy recovery for malformed LLM responses
+// ✅ Circuit Breaker — Fails fast on repeated API errors
+// ✅ Multi-Provider — Google, OpenRouter, OpenAI, Anthropic, Groq
+// ✅ Schema.org — FAQ, HowTo, VideoObject structured data
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { GoogleGenAI } from '@google/genai';
@@ -34,7 +38,7 @@ import {
 // 📌 VERSION & CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const AI_ORCHESTRATOR_VERSION = "36.0.0";
+export const AI_ORCHESTRATOR_VERSION = "38.0.0";
 
 const TIMEOUTS = {
     OUTLINE_GENERATION: 60000,
@@ -64,13 +68,14 @@ const currentYear = now.getFullYear();
 export const CONTENT_YEAR = currentMonth === 11 ? currentYear + 1 : currentYear;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🎨 DESIGN SYSTEM TOKENS
+// 🎨 DESIGN TOKENS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TOKENS = {
     colors: {
         primary: '#6366f1',
         primaryDark: '#4f46e5',
+        primaryLight: '#818cf8',
         primaryBg: '#eef2ff',
         primaryBorder: '#c7d2fe',
         success: '#22c55e',
@@ -275,13 +280,21 @@ function isValidString(str: string | undefined | null): str is string {
     return typeof str === 'string' && str.trim().length > 0;
 }
 
+function extractSlugFromUrl(url: string): string {
+    try {
+        const parts = new URL(url).pathname.split('/').filter(Boolean);
+        return parts[parts.length - 1] || '';
+    } catch {
+        return url.split('/').filter(Boolean).pop() || '';
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🎨 THEME-ADAPTIVE CSS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const THEME_ADAPTIVE_CSS = `
 <style>
-/* WP Optimizer Pro v36.0 - Bulletproof Reset */
 #wpo-engine-root, #wpo-engine-root *, #wpo-engine-root *::before, #wpo-engine-root *::after {
     box-sizing: border-box !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
@@ -303,14 +316,12 @@ export const THEME_ADAPTIVE_CSS = `
 #wpo-engine-root details summary::marker { display: none !important; }
 #wpo-engine-root .wpo-video-wrap { position: relative !important; padding-bottom: 56.25% !important; height: 0 !important; overflow: hidden !important; }
 #wpo-engine-root .wpo-video-wrap iframe { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: none !important; }
-@media (max-width: 640px) {
-    #wpo-engine-root { font-size: 16px !important; }
-}
+@media (max-width: 640px) { #wpo-engine-root { font-size: 16px !important; } }
 </style>
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🎨 VISUAL COMPONENT GENERATORS (25+ Components)
+// 🎨 VISUAL COMPONENT 1: QUICK ANSWER BOX
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function createQuickAnswerBox(answer: string, title: string = 'Quick Answer'): string {
@@ -330,6 +341,10 @@ export function createQuickAnswerBox(answer: string, title: string = 'Quick Answ
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 2: PRO TIP BOX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createProTipBox(tip: string, title: string = 'Pro Tip'): string {
     if (!isValidString(tip)) return '';
     
@@ -347,6 +362,10 @@ export function createProTipBox(tip: string, title: string = 'Pro Tip'): string 
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 3: WARNING BOX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createWarningBox(warning: string, title: string = 'Warning'): string {
     if (!isValidString(warning)) return '';
     
@@ -363,6 +382,10 @@ export function createWarningBox(warning: string, title: string = 'Warning'): st
     </div>
 </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 4: EXPERT QUOTE BOX
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function createExpertQuoteBox(quote: string, author: string, title?: string): string {
     if (!isValidString(quote) || !isValidString(author)) return '';
@@ -383,6 +406,10 @@ export function createExpertQuoteBox(quote: string, author: string, title?: stri
 </blockquote>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 5: HIGHLIGHT BOX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createHighlightBox(text: string, icon: string = '✨', bgColor: string = TOKENS.colors.primary): string {
     if (!isValidString(text)) return '';
     
@@ -394,6 +421,10 @@ export function createHighlightBox(text: string, icon: string = '✨', bgColor: 
     </div>
 </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 6: CALLOUT BOX
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function createCalloutBox(text: string, type: 'info' | 'success' | 'warning' | 'error' = 'info'): string {
     if (!isValidString(text)) return '';
@@ -418,6 +449,10 @@ export function createCalloutBox(text: string, type: 'info' | 'success' | 'warni
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 7: STATISTICS BOX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createStatisticsBox(stats: Array<{ value: string; label: string; icon?: string }>): string {
     if (!isValidArray(stats)) return '';
     
@@ -436,6 +471,10 @@ export function createStatisticsBox(stats: Array<{ value: string; label: string;
     </div>
 </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 8: DATA TABLE
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function createDataTable(title: string, headers: string[], rows: string[][], sourceNote?: string): string {
     if (!isValidString(title) || !isValidArray(headers) || !isValidArray(rows)) return '';
@@ -473,6 +512,10 @@ export function createDataTable(title: string, headers: string[], rows: string[]
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 9: CHECKLIST BOX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createChecklistBox(title: string, items: string[], icon: string = '✅'): string {
     if (!isValidString(title) || !isValidArray(items)) return '';
     
@@ -494,6 +537,10 @@ export function createChecklistBox(title: string, items: string[], icon: string 
     <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important;">${listItems}</ul>
 </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 10: STEP-BY-STEP BOX (with HowTo Schema)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function createStepByStepBox(title: string, steps: Array<{ title: string; description: string }>): string {
     if (!isValidString(title) || !isValidArray(steps)) return '';
@@ -535,6 +582,10 @@ export function createStepByStepBox(title: string, steps: Array<{ title: string;
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 11: COMPARISON TABLE
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createComparisonTable(title: string, headers: [string, string], rows: Array<[string, string]>): string {
     if (!isValidString(title) || !isValidArray(rows)) return '';
     
@@ -571,6 +622,10 @@ export function createComparisonTable(title: string, headers: [string, string], 
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 12: DEFINITION BOX
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createDefinitionBox(term: string, definition: string): string {
     if (!isValidString(term) || !isValidString(definition)) return '';
     
@@ -588,6 +643,10 @@ export function createDefinitionBox(term: string, definition: string): string {
     </div>
 </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 13: KEY TAKEAWAYS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function createKeyTakeaways(takeaways: string[]): string {
     if (!isValidArray(takeaways)) return '';
@@ -614,6 +673,10 @@ export function createKeyTakeaways(takeaways: string[]): string {
 </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 14: FAQ ACCORDION (with Schema.org)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createFAQAccordion(faqs: Array<{ question: string; answer: string }>): string {
     if (!isValidArray(faqs)) return '';
     
@@ -626,10 +689,7 @@ export function createFAQAccordion(faqs: Array<{ question: string; answer: strin
         "mainEntity": validFaqs.map(faq => ({
             "@type": "Question",
             "name": faq.question,
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": faq.answer.replace(/<[^>]*>/g, '')
-            }
+            "acceptedAnswer": { "@type": "Answer", "text": faq.answer.replace(/<[^>]*>/g, '') }
         }))
     };
     
@@ -637,7 +697,7 @@ export function createFAQAccordion(faqs: Array<{ question: string; answer: strin
         <details style="border: 1px solid ${TOKENS.colors.gray200} !important; border-radius: ${TOKENS.radius.md} !important; margin-bottom: 14px !important; background: ${TOKENS.colors.white} !important; overflow: hidden !important;" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
             <summary style="padding: 20px 24px !important; cursor: pointer !important; font-weight: 700 !important; font-size: 16px !important; color: ${TOKENS.colors.gray800} !important; list-style: none !important; display: flex !important; justify-content: space-between !important; align-items: center !important; background: ${TOKENS.colors.white} !important;" itemprop="name">
                 <span style="flex: 1 !important; padding-right: 18px !important; line-height: 1.4 !important;">${escapeHtml(faq.question)}</span>
-                <span style="width: 32px !important; height: 32px !important; border-radius: ${TOKENS.radius.full} !important; background: ${TOKENS.colors.gray100} !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 12px !important; color: ${TOKENS.colors.primary} !important; flex-shrink: 0 !important; transition: transform 0.2s ease !important;">▼</span>
+                <span style="width: 32px !important; height: 32px !important; border-radius: ${TOKENS.radius.full} !important; background: ${TOKENS.colors.gray100} !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 12px !important; color: ${TOKENS.colors.primary} !important; flex-shrink: 0 !important;">▼</span>
             </summary>
             <div style="padding: 0 24px 24px 24px !important; font-size: 15px !important; line-height: 1.8 !important; color: ${TOKENS.colors.gray600} !important; background: ${TOKENS.colors.gray50} !important; border-top: 1px solid ${TOKENS.colors.gray200} !important;" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
                 <div itemprop="text" style="padding-top: 20px !important;">${faq.answer}</div>
@@ -661,6 +721,10 @@ export function createFAQAccordion(faqs: Array<{ question: string; answer: strin
 </section>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 15: YOUTUBE EMBED (with Schema)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function createYouTubeEmbed(video: YouTubeVideoData): string {
     if (!video?.videoId) {
         console.error('[WPO] createYouTubeEmbed: Missing videoId', video);
@@ -679,7 +743,7 @@ export function createYouTubeEmbed(video: YouTubeVideoData): string {
         "embedUrl": `https://www.youtube.com/embed/${video.videoId}`,
         "contentUrl": `https://www.youtube.com/watch?v=${video.videoId}`
     };
-    
+
     return `
 <script type="application/ld+json">${JSON.stringify(videoSchema)}</script>
 <div style="margin: 52px 0 !important; border-radius: ${TOKENS.radius.xl} !important; overflow: hidden !important; box-shadow: ${TOKENS.shadows.xl} !important; border: none !important; background: #000 !important;">
@@ -712,6 +776,10 @@ export function createYouTubeEmbed(video: YouTubeVideoData): string {
     </div>
 </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL COMPONENT 16: REFERENCES SECTION
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function createReferencesSection(references: DiscoveredReference[]): string {
     if (!isValidArray(references)) return '';
@@ -967,7 +1035,7 @@ export async function discoverReferences(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 INTERNAL LINK INJECTION — SEMANTIC MATCHING ONLY (NO GENERIC FALLBACK)
+// 🔗 INTERNAL LINK INJECTION — SEMANTIC MATCHING ONLY
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function injectInternalLinksDistributed(
@@ -1201,7 +1269,7 @@ function findSemanticAnchor(text: string, target: InternalLinkTarget, log: LogFu
         }
     }
     
-    // ✅ NO GENERIC FALLBACK — Return empty to skip irrelevant anchors
+    // NO GENERIC FALLBACK — Return empty to skip irrelevant anchors
     return '';
 }
 
@@ -1269,11 +1337,120 @@ function healJSON(rawText: string, log: LogFunction): { success: boolean; data?:
         } catch {}
     }
     
-    return { success: false, error: `JSON parse failed` };
+    return { success: false, error: 'JSON parse failed' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔧 SYSTEM PROMPT
+// 🔌 LLM CALLERS (Multi-Provider Support)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function callLLM(
+    provider: string,
+    apiKeys: any,
+    model: string,
+    userPrompt: string,
+    systemPrompt: string,
+    options: { temperature?: number; maxTokens?: number },
+    timeoutMs: number,
+    log: LogFunction
+): Promise<string> {
+    const { temperature = 0.7, maxTokens = 8000 } = options;
+    
+    if (isCircuitOpen(provider)) throw new Error(`Circuit breaker OPEN for ${provider}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+        let response: string;
+        
+        switch (provider) {
+            case 'google':
+                const ai = new GoogleGenAI({ apiKey: apiKeys.google });
+                const geminiResponse = await ai.models.generateContent({
+                    model: model || 'gemini-2.5-flash-preview-05-20',
+                    contents: userPrompt,
+                    config: { systemInstruction: systemPrompt, temperature, maxOutputTokens: maxTokens }
+                });
+                response = geminiResponse.text || '';
+                break;
+            case 'openrouter':
+                const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKeys.openrouter}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://wp-optimizer-pro.com', 'X-Title': 'WP Optimizer Pro' },
+                    body: JSON.stringify({ model: apiKeys.openrouterModel || model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
+                    signal: controller.signal
+                });
+                if (!orRes.ok) throw new Error(`OpenRouter error ${orRes.status}`);
+                const orData = await orRes.json();
+                response = orData.choices?.[0]?.message?.content || '';
+                break;
+            case 'openai':
+                const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKeys.openai}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
+                    signal: controller.signal
+                });
+                if (!oaiRes.ok) throw new Error(`OpenAI error ${oaiRes.status}`);
+                const oaiData = await oaiRes.json();
+                response = oaiData.choices?.[0]?.message?.content || '';
+                break;
+            case 'anthropic':
+                const antRes = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'x-api-key': apiKeys.anthropic, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
+                    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', system: systemPrompt, messages: [{ role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
+                    signal: controller.signal
+                });
+                if (!antRes.ok) throw new Error(`Anthropic error ${antRes.status}`);
+                const antData = await antRes.json();
+                response = antData.content?.[0]?.text || '';
+                break;
+            case 'groq':
+                const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKeys.groq}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: apiKeys.groqModel || 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: Math.min(maxTokens, 8000) }),
+                    signal: controller.signal
+                });
+                if (!groqRes.ok) throw new Error(`Groq error ${groqRes.status}`);
+                const groqData = await groqRes.json();
+                response = groqData.choices?.[0]?.message?.content || '';
+                break;
+            default:
+                throw new Error(`Unknown provider: ${provider}`);
+        }
+        
+        clearTimeout(timeoutId);
+        recordSuccess(provider);
+        return response;
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.message?.includes('401') || error.message?.includes('429') || error.message?.includes('500')) {
+            recordFailure(provider, log);
+        }
+        throw error;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📝 H1 REMOVAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function removeAllH1Tags(html: string, log: LogFunction): string {
+    if (!html) return html;
+    const h1Count = (html.match(/<h1/gi) || []).length;
+    if (h1Count === 0) return html;
+    
+    log(`   ⚠️ Removing ${h1Count} H1 tag(s)...`);
+    let cleaned = html.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '');
+    cleaned = cleaned.replace(/<h1\b[^>]*>/gi, '').replace(/<\/h1>/gi, '');
+    return cleaned.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 SYSTEM PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function buildSystemPrompt(config: { topic: string; targetWords: number }): string {
@@ -1315,482 +1492,391 @@ OUTPUT: Valid JSON only:
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔌 LLM CALLERS (Multi-Provider Support)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-async function callLLM(
-    provider: string,
-    apiKeys: any,
-    model: string,
-    userPrompt: string,
-    systemPrompt: string,
-    options: { temperature?: number; maxTokens?: number },
-    timeoutMs: number,
-    log: LogFunction
-): Promise<string> {
-    const { temperature = 0.7, maxTokens = 8000 } = options;
-    
-    if (isCircuitOpen(provider)) throw new Error(`Circuit breaker OPEN for ${provider}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    
-    try {
-        let response: string;
-        
-        switch (provider) {
-            case 'google':
-                response = await callGemini(apiKeys.google, model, userPrompt, systemPrompt, temperature, maxTokens);
-                break;
-            case 'openrouter':
-                response = await callOpenRouter(apiKeys.openrouter, apiKeys.openrouterModel || model, userPrompt, systemPrompt, temperature, maxTokens, controller.signal);
-                break;
-            case 'openai':
-                response = await callOpenAI(apiKeys.openai, 'gpt-4o', userPrompt, systemPrompt, temperature, maxTokens, controller.signal);
-                break;
-            case 'anthropic':
-                response = await callAnthropic(apiKeys.anthropic, 'claude-sonnet-4-20250514', userPrompt, systemPrompt, temperature, maxTokens, controller.signal);
-                break;
-            case 'groq':
-                response = await callGroq(apiKeys.groq, apiKeys.groqModel || 'llama-3.3-70b-versatile', userPrompt, systemPrompt, temperature, Math.min(maxTokens, 8000), controller.signal);
-                break;
-            default:
-                throw new Error(`Unknown provider: ${provider}`);
-        }
-        
-        clearTimeout(timeoutId);
-        recordSuccess(provider);
-        return response;
-    } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.message?.includes('401') || error.message?.includes('429') || error.message?.includes('500')) {
-            recordFailure(provider, log);
-        }
-        throw error;
-    }
-}
-
-async function callGemini(apiKey: string, model: string, userPrompt: string, systemPrompt: string, temperature: number, maxTokens: number): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-        model: model || 'gemini-2.5-flash-preview-05-20',
-        contents: userPrompt,
-        config: { systemInstruction: systemPrompt, temperature, maxOutputTokens: maxTokens }
-    });
-    return response.text || '';
-}
-
-async function callOpenRouter(apiKey: string, model: string, userPrompt: string, systemPrompt: string, temperature: number, maxTokens: number, signal: AbortSignal): Promise<string> {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://wp-optimizer-pro.com', 'X-Title': 'WP Optimizer Pro' },
-        body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
-        signal
-    });
-    if (!response.ok) throw new Error(`OpenRouter error ${response.status}`);
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-}
-
-async function callOpenAI(apiKey: string, model: string, userPrompt: string, systemPrompt: string, temperature: number, maxTokens: number, signal: AbortSignal): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
-        signal
-    });
-    if (!response.ok) throw new Error(`OpenAI error ${response.status}`);
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-}
-
-async function callAnthropic(apiKey: string, model: string, userPrompt: string, systemPrompt: string, temperature: number, maxTokens: number, signal: AbortSignal): Promise<string> {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
-        signal
-    });
-    if (!response.ok) throw new Error(`Anthropic error ${response.status}`);
-    const data = await response.json();
-    return data.content?.[0]?.text || '';
-}
-
-async function callGroq(apiKey: string, model: string, userPrompt: string, systemPrompt: string, temperature: number, maxTokens: number, signal: AbortSignal): Promise<string> {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
-        signal
-    });
-    if (!response.ok) throw new Error(`Groq error ${response.status}`);
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📝 H1 REMOVAL
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function removeAllH1Tags(html: string, log: LogFunction): string {
-    if (!html) return html;
-    const h1Count = (html.match(/<h1/gi) || []).length;
-    if (h1Count === 0) return html;
-    
-    log(`   ⚠️ Removing ${h1Count} H1 tag(s)...`);
-    let cleaned = html;
-    for (let i = 0; i < 3; i++) {
-        cleaned = cleaned.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '');
-    }
-    cleaned = cleaned.replace(/<h1\b[^>]*>/gi, '').replace(/<\/h1>/gi, '');
-    return cleaned.replace(/\n{3,}/g, '\n\n').trim();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🚀 MAIN ORCHESTRATOR CLASS
+// 🚀 MAIN ORCHESTRATOR CLASS — WITH ALL THREE METHODS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class AIOrchestrator {
     
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // 🎯 SINGLE-SHOT GENERATION v36.0 — ULTIMATE ENTERPRISE EDITION
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    async generateSingleShot(config: GenerateConfig, log: LogFunction): Promise<GenerationResult> {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 📋 generateEnhanced() — STAGED PIPELINE (THE CRITICAL METHOD!)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    async generateEnhanced(
+        config: GenerateConfig,
+        log: LogFunction,
+        onStageProgress?: (progress: StageProgress) => void
+    ): Promise<GenerationResult> {
         const startTime = Date.now();
-        log(`🚀 ENTERPRISE PIPELINE v${AI_ORCHESTRATOR_VERSION}`);
+        log(`🚀 STAGED PIPELINE v${AI_ORCHESTRATOR_VERSION}`);
         log(`   → Topic: "${config.topic.substring(0, 50)}..."`);
         log(`   → Provider: ${config.provider} | Model: ${config.model}`);
         
-        // ✅ CRITICAL: Initialize BEFORE the promises
         let youtubeVideo: YouTubeVideoData | null = null;
         let references: DiscoveredReference[] = [];
         
-        // ═══════════════════════════════════════════════════════════════
-        // PHASE 1: PARALLEL ASSET DISCOVERY
-        // ═══════════════════════════════════════════════════════════════
+        try {
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 1: GENERATE OUTLINE
+            // ═══════════════════════════════════════════════════════════════
+            
+            onStageProgress?.({ stage: 'outline', progress: 10, message: 'Generating content outline...' });
+            log(`📋 Stage 1: Generating content outline...`);
+            
+            const outlinePrompt = `Create a detailed content outline for: "${config.topic}"
 
-        log(`🔍 Phase 1: Asset Discovery (Parallel)`);
-        log(`   📋 Serper API: ${config.apiKeys?.serper ? '✅' : '❌ MISSING'}`);
-
-        const youtubePromise = config.apiKeys?.serper 
-            ? searchYouTubeVideo(config.topic, config.apiKeys.serper, log)
-            : Promise.resolve(null);
-
-        const referencesPromise = config.apiKeys?.serper ? (async () => {
-            try {
-                if (config.validatedReferences && config.validatedReferences.length >= 5) {
-                    return config.validatedReferences.map(ref => ({
-                        url: ref.url,
-                        title: ref.title,
-                        source: ref.source || extractSourceName(ref.url),
-                        snippet: ref.snippet,
-                        year: ref.year,
-                        authorityScore: ref.isAuthority ? 90 : 70,
-                        favicon: `https://www.google.com/s2/favicons?domain=${extractDomain(ref.url)}&sz=32`
-                    }));
-                } else {
-                    return await discoverReferences(config.topic, config.apiKeys.serper, { targetCount: 10, minAuthorityScore: 60 }, log);
-                }
-            } catch (e: any) {
-                log(`   ❌ References ERROR: ${e.message}`);
-                return [];
-            }
-        })() : Promise.resolve([]);
-        
-        // ═══════════════════════════════════════════════════════════════
-        // PHASE 2: CONTENT GENERATION
-        // ═══════════════════════════════════════════════════════════════
-        
-        log(`📝 Phase 2: Content Generation`);
-        
-        const humanPrompt = `You're writing like Alex Hormozi meets Tim Ferriss. Punchy, personal, valuable.
-
-Write a ${CONTENT_TARGETS.TARGET_WORDS}+ word blog post about: "${config.topic}"
-
-⚠️ CRITICAL: Do NOT include FAQ section in htmlContent. We add FAQs separately.
-
-VOICE RULES:
-• Write like texting a smart friend
-• Use contractions: don't, won't, can't, you'll, here's
-• Start sentences with: Look, Here's the thing, And, But, So, Now
-• 1-3 sentences MAX per paragraph
-• Wrap ALL text in <p> tags
-
-STRUCTURE:
-• 8-12 H2 sections, each with 2-3 H3 subsections
-• NO H1 tags
-• Use proper <p>, <h2>, <h3>, <ul>, <li> tags
-
-FORBIDDEN: "In today's", "It's important to note", "Let's dive in", "Comprehensive guide", "Leverage", "Utilize"
-
-OUTPUT (VALID JSON ONLY):
+Output JSON:
 {
-  "title": "Title (50-60 chars)",
-  "metaDescription": "Meta (150-160 chars)",
-  "slug": "url-slug",
-  "htmlContent": "Full HTML with <p>, <h2>, <h3>",
-  "excerpt": "2-3 sentence summary",
-  "faqs": [{"question": "...", "answer": "80-150 words"}],
-  "wordCount": number
+  "title": "Compelling title (50-60 chars)",
+  "metaDescription": "Meta description (150-160 chars)",
+  "slug": "url-friendly-slug",
+  "sections": [
+    {
+      "heading": "H2 Section Title",
+      "keyPoints": ["Point 1", "Point 2"],
+      "subsections": [{"heading": "H3 Title", "keyPoints": ["Detail"]}]
+    }
+  ],
+  "faqTopics": ["Question 1?", "Question 2?"],
+  "keyTakeaways": ["Takeaway 1", "Takeaway 2"]
 }
 
-⚠️ Return ONLY valid JSON.`;
+REQUIREMENTS:
+- 8-12 main sections (H2s)
+- 2-3 subsections (H3s) per section
+- 8-10 FAQ topics
+- 5-7 key takeaways
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            log(`   📝 Content attempt ${attempt}/3...`);
+Return ONLY valid JSON.`;
+
+            const outlineResponse = await callLLM(
+                config.provider, config.apiKeys, config.model, outlinePrompt,
+                buildSystemPrompt({ topic: config.topic, targetWords: CONTENT_TARGETS.TARGET_WORDS }),
+                { temperature: 0.7, maxTokens: 4000 }, TIMEOUTS.OUTLINE_GENERATION, log
+            );
             
+            const outlineParsed = healJSON(outlineResponse, log);
+            if (!outlineParsed.success || !outlineParsed.data?.sections?.length) {
+                log(`   ❌ Outline generation failed, falling back to single-shot`);
+                return this.generateSingleShot(config, log);
+            }
+            
+            const outline: ContentOutline = outlineParsed.data;
+            log(`   ✅ Outline: ${outline.sections.length} sections, ${outline.faqTopics?.length || 0} FAQs`);
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 2: PARALLEL — YouTube + References
+            // ═══════════════════════════════════════════════════════════════
+            
+            onStageProgress?.({ stage: 'youtube', progress: 15, message: 'Discovering assets...' });
+            log(`🔍 Stage 2: Discovering YouTube & References (parallel)...`);
+            
+            const youtubePromise = config.apiKeys?.serper 
+                ? searchYouTubeVideo(config.topic, config.apiKeys.serper, log)
+                : Promise.resolve(null);
+            
+            const referencesPromise = config.apiKeys?.serper ? (async () => {
+                try {
+                    if (config.validatedReferences && config.validatedReferences.length >= 5) {
+                        return config.validatedReferences.map(ref => ({
+                            url: ref.url,
+                            title: ref.title,
+                            source: ref.source || extractSourceName(ref.url),
+                            snippet: ref.snippet,
+                            year: ref.year,
+                            authorityScore: ref.isAuthority ? 90 : 70,
+                            favicon: `https://www.google.com/s2/favicons?domain=${extractDomain(ref.url)}&sz=32`
+                        }));
+                    } else {
+                        return await discoverReferences(config.topic, config.apiKeys.serper, { targetCount: 10, minAuthorityScore: 60 }, log);
+                    }
+                } catch (e: any) {
+                    log(`   ❌ References ERROR: ${e.message}`);
+                    return [];
+                }
+            })() : Promise.resolve([]);
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 3: GENERATE SECTIONS
+            // ═══════════════════════════════════════════════════════════════
+            
+            onStageProgress?.({ stage: 'sections', progress: 20, message: 'Generating sections...', sectionsCompleted: 0, totalSections: outline.sections.length });
+            log(`✍️ Stage 3: Generating ${outline.sections.length} sections...`);
+            
+            const sections: string[] = [];
+            
+            for (let i = 0; i < outline.sections.length; i += 2) {
+                const batch = outline.sections.slice(i, i + 2);
+                
+                const batchResults = await Promise.all(batch.map(async (section, batchIdx) => {
+                    const sectionIdx = i + batchIdx;
+                    log(`   📝 Section ${sectionIdx + 1}/${outline.sections.length}: "${section.heading.substring(0, 40)}..."`);
+                    
+                    const sectionPrompt = `Write section ${sectionIdx + 1} for a blog post about "${config.topic}".
+
+SECTION: ${section.heading}
+KEY POINTS: ${section.keyPoints.join(', ')}
+SUBSECTIONS: ${section.subsections.map(s => s.heading).join(', ')}
+
+TARGET: 350-500 words.
+OUTPUT: HTML only, starting with <h2>. Include H3 subsections.
+NO JSON wrapper. NO markdown.`;
+
+                    try {
+                        const response = await callLLM(
+                            config.provider, config.apiKeys, config.model, sectionPrompt,
+                            'You are an expert content writer. Output only clean HTML.',
+                            { temperature: 0.75, maxTokens: 3000 }, TIMEOUTS.SECTION_GENERATION, log
+                        );
+                        
+                        let html = response.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '');
+                        const wordCount = countWords(html);
+                        log(`      ✅ ${wordCount} words`);
+                        return html;
+                    } catch (err: any) {
+                        log(`      ❌ Failed: ${err.message}`);
+                        return `<h2>${escapeHtml(section.heading)}</h2><p>[Content generation failed for this section]</p>`;
+                    }
+                }));
+                
+                sections.push(...batchResults);
+                
+                onStageProgress?.({ 
+                    stage: 'sections', 
+                    progress: 20 + Math.round((sections.length / outline.sections.length) * 40),
+                    message: `Generated ${sections.length}/${outline.sections.length} sections`,
+                    sectionsCompleted: sections.length,
+                    totalSections: outline.sections.length
+                });
+                
+                if (i + 2 < outline.sections.length) await sleep(1000);
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 4: WAIT FOR PARALLEL TASKS
+            // ═══════════════════════════════════════════════════════════════
+            
+            onStageProgress?.({ stage: 'references', progress: 65, message: 'Processing assets...' });
+            log(`⏳ Stage 4: Awaiting parallel tasks...`);
+            
+            const [ytResult, refResult] = await Promise.allSettled([youtubePromise, referencesPromise]);
+            
+            if (ytResult.status === 'fulfilled' && ytResult.value) {
+                youtubeVideo = ytResult.value;
+                log(`   ✅ YouTube: "${youtubeVideo.title?.substring(0, 40)}..." (videoId: ${youtubeVideo.videoId})`);
+            } else {
+                log(`   ⚠️ YouTube: ${ytResult.status === 'rejected' ? ytResult.reason : 'No video found'}`);
+            }
+            
+            if (refResult.status === 'fulfilled' && refResult.value) {
+                references = refResult.value;
+                log(`   ✅ References: ${references.length} sources`);
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 5: GENERATE FAQ
+            // ═══════════════════════════════════════════════════════════════
+            
+            log(`❓ Stage 5: Generating FAQ section...`);
+            
+            let faqs: Array<{ question: string; answer: string }> = [];
+            
+            if (outline.faqTopics?.length > 0) {
+                const faqPrompt = `Write detailed FAQ answers for these questions about "${config.topic}":
+
+${outline.faqTopics.slice(0, 8).map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+OUTPUT: JSON array only:
+[{"question": "...", "answer": "80-150 word answer"}]
+
+Return ONLY the JSON array.`;
+
+                try {
+                    const faqResponse = await callLLM(
+                        config.provider, config.apiKeys, config.model, faqPrompt,
+                        'You are an expert content writer. Output only valid JSON.',
+                        { temperature: 0.7, maxTokens: 4000 }, TIMEOUTS.SECTION_GENERATION, log
+                    );
+                    
+                    const faqParsed = healJSON(`{"faqs":${faqResponse}}`, log);
+                    if (faqParsed.success && Array.isArray(faqParsed.data?.faqs)) {
+                        faqs = faqParsed.data.faqs;
+                    } else {
+                        try {
+                            const directParse = JSON.parse(faqResponse.trim());
+                            if (Array.isArray(directParse)) faqs = directParse;
+                        } catch {}
+                    }
+                    log(`   ✅ ${faqs.length} FAQs generated`);
+                } catch (err: any) {
+                    log(`   ⚠️ FAQ generation failed: ${err.message}`);
+                    faqs = outline.faqTopics.slice(0, 8).map(q => ({ 
+                        question: q, 
+                        answer: `This is a common question about ${config.topic}. The answer depends on your specific situation and goals.` 
+                    }));
+                }
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 6: GENERATE INTRO & CONCLUSION
+            // ═══════════════════════════════════════════════════════════════
+            
+            onStageProgress?.({ stage: 'merge', progress: 75, message: 'Generating intro & conclusion...' });
+            log(`📝 Stage 6: Generating intro & conclusion...`);
+            
+            let introHtml = '';
             try {
-                const response = await callLLM(
-                    config.provider, config.apiKeys, config.model, humanPrompt,
-                    buildSystemPrompt({ topic: config.topic, targetWords: CONTENT_TARGETS.TARGET_WORDS }),
-                    { temperature: 0.78 + (attempt - 1) * 0.04, maxTokens: 16000 },
-                    TIMEOUTS.SINGLE_SHOT, log
+                const introPrompt = `Write an engaging 250-350 word introduction for a blog post titled: "${outline.title}"
+Topic: ${config.topic}
+
+Include:
+1. Compelling hook
+2. What the reader will learn
+3. Why this matters
+
+OUTPUT: HTML only, starting with <p>. NO heading.`;
+
+                const introResponse = await callLLM(
+                    config.provider, config.apiKeys, config.model, introPrompt,
+                    'You are an expert content writer. Output only clean HTML.',
+                    { temperature: 0.7, maxTokens: 2000 }, TIMEOUTS.SECTION_GENERATION, log
                 );
+                introHtml = introResponse.replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '').trim();
+                log(`   ✅ Introduction: ${countWords(introHtml)} words`);
+            } catch {
+                introHtml = `<p>${escapeHtml(config.topic)} is a topic that deserves careful attention. In this guide, you'll discover everything you need to know to achieve your goals.</p>`;
+            }
+            
+            let conclusionHtml = '';
+            try {
+                const conclusionPrompt = `Write a strong 200-300 word conclusion for a blog post about "${config.topic}".
+
+Include:
+1. Summary of key points
+2. Call to action
+3. Next steps
+
+OUTPUT: HTML only, starting with <h2>Conclusion</h2>.`;
+
+                const conclusionResponse = await callLLM(
+                    config.provider, config.apiKeys, config.model, conclusionPrompt,
+                    'You are an expert content writer. Output only clean HTML.',
+                    { temperature: 0.7, maxTokens: 2000 }, TIMEOUTS.SECTION_GENERATION, log
+                );
+                conclusionHtml = conclusionResponse.replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '').trim();
+                log(`   ✅ Conclusion: ${countWords(conclusionHtml)} words`);
+            } catch {
+                conclusionHtml = `<h2>Conclusion</h2><p>Now you have all the tools and knowledge you need to succeed with ${escapeHtml(config.topic)}. Take action and apply what you've learned.</p>`;
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 7: ASSEMBLE FINAL CONTENT
+            // ═══════════════════════════════════════════════════════════════
+            
+            onStageProgress?.({ stage: 'polish', progress: 85, message: 'Assembling final content...' });
+            log(`🔀 Stage 7: Assembling content with visual components...`);
+            
+            const quickAnswerText = `${config.topic} requires understanding key principles and applying proven strategies. This guide covers everything from foundational concepts to advanced techniques.`;
+            
+            const proTips = [
+                `Start with the fundamentals before moving to advanced techniques — mastery comes from a solid foundation.`,
+                `Track your progress regularly and adjust your approach based on actual results.`,
+                `Learn from industry experts and stay updated with the latest trends.`
+            ];
+            
+            const keyTakeaways = outline.keyTakeaways?.length > 0 ? outline.keyTakeaways : [
+                `Understanding ${config.topic} requires both theoretical knowledge and practical application`,
+                `Success depends on consistent effort and continuous learning`,
+                `Expert guidance and proven frameworks accelerate results significantly`,
+                `Regular assessment and optimization are essential for long-term success`,
+                `Building a strong foundation enables advanced strategy implementation`
+            ];
+            
+            const contentParts: string[] = [];
+            
+            contentParts.push(THEME_ADAPTIVE_CSS);
+            contentParts.push('<div id="wpo-engine-root">');
+            contentParts.push(introHtml);
+            contentParts.push(createQuickAnswerBox(quickAnswerText));
+            
+            contentParts.push(createStatisticsBox([
+                { value: '73%', label: 'Success Rate', icon: '📈' },
+                { value: '2.5x', label: 'Faster Results', icon: '⚡' },
+                { value: '10K+', label: 'People Helped', icon: '👥' },
+                { value: '4.8★', label: 'User Rating', icon: '⭐' }
+            ]));
+            
+            if (youtubeVideo && youtubeVideo.videoId) {
+                contentParts.push(createYouTubeEmbed(youtubeVideo));
+                log(`   ✅ YouTube video embedded`);
+            }
+            
+            sections.forEach((section, index) => {
+                contentParts.push(section);
                 
-                const parsed = healJSON(response, log);
+                if (index === 0) {
+                    contentParts.push(createCalloutBox('Bookmark this page. You\'ll want to come back as you implement.', 'info'));
+                }
                 
-                if (parsed.success && parsed.data?.htmlContent) {
-                    const rawContract = parsed.data as ContentContract;
-                    
-                    // ═══════════════════════════════════════════════════════════
-                    // PHASE 3: AWAIT PARALLEL TASKS — CRITICAL!
-                    // ═══════════════════════════════════════════════════════════
-                    
-                    log(`⏳ Phase 3: Awaiting Parallel Tasks...`);
-                    
-                    // ✅ FIXED: Use Promise.allSettled + explicit reassignment
-                    const [ytResult, refResult] = await Promise.allSettled([youtubePromise, referencesPromise]);
-                    
-                    if (ytResult.status === 'fulfilled' && ytResult.value) {
-                        youtubeVideo = ytResult.value;
-                        log(`   ✅ YouTube: "${youtubeVideo.title?.substring(0, 40)}..." (videoId: ${youtubeVideo.videoId})`);
-                    } else {
-                        log(`   ⚠️ YouTube: ${ytResult.status === 'rejected' ? ytResult.reason : 'No video found'}`);
-                    }
-                    
-                    if (refResult.status === 'fulfilled' && refResult.value) {
-                        references = refResult.value;
-                        log(`   ✅ References: ${references.length} sources`);
-                    }
-                    
-                    // ═══════════════════════════════════════════════════════════
-                    // PHASE 4: CONTENT ENRICHMENT (25+ Visual Components)
-                    // ═══════════════════════════════════════════════════════════
-                    
-                    log(`🎨 Phase 4: Content Enrichment`);
-                    
-                    const contentParts: string[] = [];
-                    
-                    // CSS + Root Wrapper
-                    contentParts.push(THEME_ADAPTIVE_CSS);
-                    contentParts.push('<div id="wpo-engine-root">');
-                    
-                    // VISUAL 1: Quick Answer Box
-                    contentParts.push(createQuickAnswerBox(
-                        `Here's the deal: ${config.topic} isn't as complicated as people make it. This guide breaks down exactly what works — no fluff, just actionable strategies.`,
-                        '⚡ Quick Answer'
+                if (index === 1) {
+                    contentParts.push(createDataTable(
+                        `${config.topic} — Key Statistics`,
+                        ['Metric', 'Value', 'Source'],
+                        [
+                            ['Success Rate', '67-73%', 'Industry Research'],
+                            ['Time to Results', '30-90 days', 'Case Studies'],
+                            ['ROI Improvement', '2.5x average', 'Performance Data'],
+                            ['Adoption Growth', '+34% YoY', 'Market Analysis']
+                        ],
+                        'Industry reports'
                     ));
-                    
-                    // VISUAL 2: Statistics Box
-                    contentParts.push(createStatisticsBox([
-                        { value: '73%', label: 'Success Rate', icon: '📈' },
-                        { value: '2.5x', label: 'Faster Results', icon: '⚡' },
-                        { value: '10K+', label: 'People Helped', icon: '👥' },
-                        { value: '4.8★', label: 'User Rating', icon: '⭐' }
+                    if (proTips[0]) contentParts.push(createProTipBox(proTips[0]));
+                }
+                
+                if (index === 2) {
+                    contentParts.push(createExpertQuoteBox(
+                        'The bottleneck is never resources. It\'s resourcefulness.',
+                        'Tony Robbins',
+                        'Performance Coach'
+                    ));
+                }
+                
+                if (index === 3) {
+                    contentParts.push(createWarningBox(
+                        'Biggest mistake? Trying to do everything at once. Pick ONE strategy, master it.',
+                        '⚠️ Common Mistake'
+                    ));
+                    if (proTips[1]) contentParts.push(createProTipBox(proTips[1]));
+                }
+                
+                if (index === 4) {
+                    contentParts.push(createChecklistBox('Quick Action Checklist', [
+                        'Implement the first strategy TODAY',
+                        'Set up tracking to measure progress',
+                        'Block 30 minutes daily for practice',
+                        'Find an accountability partner',
+                        'Review and adjust every 7 days'
                     ]));
-                    
-                    // Process main content
-                    let mainContent = rawContract.htmlContent;
-                    mainContent = removeAllH1Tags(mainContent, log);
-                    
-                    // Strip FAQ from LLM output
-                    mainContent = mainContent.replace(/<h2[^>]*>.*?(?:FAQ|Frequently Asked|Common Questions).*?<\/h2>[\s\S]*?(?=<h2[^>]*>|$)/gi, '');
-                    mainContent = mainContent.replace(/\n{4,}/g, '\n\n');
-                    
-                    // ═══════════════════════════════════════════════════════════
-                    // EXTRACT H2 SECTIONS — FIXED METHOD (split)
-                    // ═══════════════════════════════════════════════════════════
-                    
-                    const h2SplitRegex = /(<h2[^>]*>)/gi;
-                    const parts = mainContent.split(h2SplitRegex).filter(p => p.trim());
-                    
-                    const h2Sections: string[] = [];
-                    let introContent = '';
-                    
-                    for (let i = 0; i < parts.length; i++) {
-                        if (parts[i].match(/<h2[^>]*>/i)) {
-                            const h2Tag = parts[i];
-                            const content = parts[i + 1] || '';
-                            h2Sections.push(h2Tag + content);
-                            i++;
-                        } else if (h2Sections.length === 0) {
-                            introContent += parts[i];
-                        }
-                    }
-                    
-                    log(`   📊 Content structure: ${h2Sections.length} H2 sections`);
-                    
-                    // Add intro
-                    if (introContent.trim()) {
-                        contentParts.push(introContent);
-                    }
-                    
-                    // VISUAL 3: YouTube Video — AFTER intro, AFTER await
-                    if (youtubeVideo && youtubeVideo.videoId) {
-                        const ytEmbed = createYouTubeEmbed(youtubeVideo);
-                        if (ytEmbed) {
-                            contentParts.push(ytEmbed);
-                            log(`   ✅ YouTube EMBEDDED`);
-                        }
-                    }
-                    
-                    // ═══════════════════════════════════════════════════════════
-                    // CONTENT BREATHING ENGINE — 25+ VISUALS
-                    // ═══════════════════════════════════════════════════════════
-                    
-                    if (h2Sections.length > 0) {
-                        const proTips = [
-                            `The first 30 days are hardest. Push through that resistance and everything changes.`,
-                            `Done beats perfect. Ship fast, learn faster, iterate constantly.`,
-                            `Consistency beats intensity. Daily 30-minute sessions beat weekend marathons.`,
-                            `Track everything. What gets measured gets improved.`,
-                            `Learn from people who've actually done it — not theorists.`,
-                            `Start before you're ready. Clarity comes from action, not thought.`,
-                            `Focus on one thing. Multitasking is a productivity killer.`
-                        ];
-                        
-                        const expertQuotes = [
-                            { quote: `The bottleneck is never resources. It's resourcefulness.`, author: 'Tony Robbins', title: 'Performance Coach' },
-                            { quote: `What gets measured gets managed.`, author: 'Peter Drucker', title: 'Management Expert' },
-                            { quote: `The way to get started is to quit talking and begin doing.`, author: 'Walt Disney', title: 'Entrepreneur' },
-                            { quote: `Success is not final, failure is not fatal.`, author: 'Winston Churchill', title: 'Leader' }
-                        ];
-                        
-                        const highlights = [
-                            { text: `Most people fail not because they lack knowledge — they fail because they don't take action.`, icon: '🎯', color: '#6366f1' },
-                            { text: `You don't need to be great to start. But you need to start to become great.`, icon: '💪', color: '#8b5cf6' },
-                            { text: `The gap between where you are and where you want to be is bridged by action.`, icon: '🔥', color: '#ef4444' },
-                            { text: `Information without implementation is just entertainment.`, icon: '🚀', color: '#10b981' }
-                        ];
-                        
-                        let tipIdx = 0, quoteIdx = 0, highlightIdx = 0;
-                        
-                        h2Sections.forEach((section, idx) => {
-                            contentParts.push(section);
-                            
-                            // Inject visuals based on section index
-                            if (idx === 0) {
-                                contentParts.push(createCalloutBox(`Bookmark this page. You'll want to come back as you implement.`, 'info'));
-                                if (highlightIdx < highlights.length) {
-                                    contentParts.push(createHighlightBox(highlights[highlightIdx].text, highlights[highlightIdx].icon, highlights[highlightIdx].color));
-                                    highlightIdx++;
-                                }
-                            }
-                            
-                            if (idx === 1) {
-                                contentParts.push(createDataTable(
-                                    `${config.topic} — Key Statistics`,
-                                    ['Metric', 'Value', 'Source'],
-                                    [
-                                        ['Success Rate', '67-73%', 'Industry Research'],
-                                        ['Time to Results', '30-90 days', 'Case Studies'],
-                                        ['ROI Improvement', '2.5x average', 'Performance Data'],
-                                        ['Adoption Growth', '+34% YoY', 'Market Analysis']
-                                    ],
-                                    'Industry reports'
-                                ));
-                                if (tipIdx < proTips.length) {
-                                    contentParts.push(createProTipBox(proTips[tipIdx++], '💡 Pro Tip'));
-                                }
-                            }
-                            
-                            if (idx === 2) {
-                                if (quoteIdx < expertQuotes.length) {
-                                    const q = expertQuotes[quoteIdx++];
-                                    contentParts.push(createExpertQuoteBox(q.quote, q.author, q.title));
-                                }
-                                if (highlightIdx < highlights.length) {
-                                    contentParts.push(createHighlightBox(highlights[highlightIdx].text, highlights[highlightIdx].icon, highlights[highlightIdx].color));
-                                    highlightIdx++;
-                                }
-                            }
-                            
-                            if (idx === 3) {
-                                contentParts.push(createWarningBox(
-                                    `Biggest mistake? Trying to do everything at once. Pick ONE strategy, master it.`,
-                                    '⚠️ Common Mistake'
-                                ));
-                                contentParts.push(createCalloutBox(`If you've made it this far, you're in the top 10%. Keep going.`, 'success'));
-                                if (tipIdx < proTips.length) {
-                                    contentParts.push(createProTipBox(proTips[tipIdx++], '💡 Pro Tip'));
-                                }
-                            }
-                            
-                            if (idx === 4) {
-                                contentParts.push(createChecklistBox('Quick Action Checklist', [
-                                    'Implement the first strategy TODAY',
-                                    'Set up tracking to measure progress',
-                                    'Block 30 minutes daily for practice',
-                                    'Find an accountability partner',
-                                    'Review and adjust every 7 days'
-                                ]));
-                                if (quoteIdx < expertQuotes.length) {
-                                    const q = expertQuotes[quoteIdx++];
-                                    contentParts.push(createExpertQuoteBox(q.quote, q.author, q.title));
-                                }
-                            }
-                            
-                            if (idx === 5) {
-                                contentParts.push(createStepByStepBox('Your 7-Day Action Plan', [
-                                    { title: 'Day 1-2: Foundation', description: 'Set up your environment. Get clear on your ONE goal.' },
-                                    { title: 'Day 3-4: First Action', description: 'Implement the core strategy. Start and adjust.' },
-                                    { title: 'Day 5-6: Iterate', description: 'Review what works, cut what doesn\'t.' },
-                                    { title: 'Day 7: Scale', description: 'Add the next layer. Build systems.' }
-                                ]));
-                                if (highlightIdx < highlights.length) {
-                                    contentParts.push(createHighlightBox(highlights[highlightIdx].text, highlights[highlightIdx].icon, highlights[highlightIdx].color));
-                                    highlightIdx++;
-                                }
-                            }
-                            
-                            if (idx === 6) {
-                                contentParts.push(createStatisticsBox([
-                                    { value: '87%', label: 'Completion Rate', icon: '📚' },
-                                    { value: '3.2x', label: 'Better Results', icon: '📈' },
-                                    { value: '21', label: 'Days to Habit', icon: '🎯' }
-                                ]));
-                                if (tipIdx < proTips.length) {
-                                    contentParts.push(createProTipBox(proTips[tipIdx++], '💡 Pro Tip'));
-                                }
-                            }
-                            
-                            if (idx === 7) {
-                                contentParts.push(createCalloutBox(`Don't skip ahead. Master each section first.`, 'warning'));
-                                contentParts.push(createChecklistBox('Advanced Checklist', [
-                                    'Review tracking data weekly',
-                                    'A/B test different approaches',
-                                    'Build automation for repetitive tasks',
-                                    'Create templates for consistency'
-                                ]));
-                            }
-                            
-                            if (idx >= 8 && tipIdx < proTips.length) {
-                                contentParts.push(createProTipBox(proTips[tipIdx++], '💡 Pro Tip'));
-                            }
-                        });
-                    } else {
-                        contentParts.push(mainContent);
-                        contentParts.push(createProTipBox(`Take one thing and implement it today.`, '💡 Take Action'));
-                    }
-                    
-                    // Definition Box
-                    contentParts.push(createDefinitionBox(
-                        config.topic,
-                        `A systematic approach to achieving measurable results through proven strategies and consistent execution.`
-                    ));
-                    
-                    // Comparison Table
+                }
+                
+                if (index === 5) {
+                    contentParts.push(createStepByStepBox('Your 7-Day Action Plan', [
+                        { title: 'Day 1-2: Foundation', description: 'Set up your environment. Get clear on your ONE goal.' },
+                        { title: 'Day 3-4: First Action', description: 'Implement the core strategy. Start and adjust.' },
+                        { title: 'Day 5-6: Iterate', description: 'Review what works, cut what doesn\'t.' },
+                        { title: 'Day 7: Scale', description: 'Add the next layer. Build systems.' }
+                    ]));
+                }
+                
+                if (index === 6) {
+                    contentParts.push(createStatisticsBox([
+                        { value: '87%', label: 'Completion Rate', icon: '📚' },
+                        { value: '3.2x', label: 'Better Results', icon: '📈' },
+                        { value: '21', label: 'Days to Habit', icon: '🎯' }
+                    ]));
+                    if (proTips[2]) contentParts.push(createProTipBox(proTips[2]));
+                }
+                
+                if (index === 7) {
                     contentParts.push(createComparisonTable(
                         'What Works vs What Doesn\'t',
                         ['❌ Common Mistakes', '✅ What Actually Works'],
@@ -1801,130 +1887,42 @@ OUTPUT (VALID JSON ONLY):
                             ['Waiting for perfect conditions', 'Starting messy, iterating fast']
                         ]
                     ));
-                    
-                    // Key Takeaways
-                    contentParts.push(createKeyTakeaways([
-                        `${config.topic} requires consistent, focused action`,
-                        `Focus on the 20% that drives 80% of results`,
-                        `Track progress weekly — what gets measured improves`,
-                        `Start messy, iterate fast — perfectionism kills progress`,
-                        `Find someone successful and model their process`
-                    ]));
-                    
-                    // FAQ Accordion
-                    if (rawContract.faqs?.length > 0) {
-                        const validFaqs = rawContract.faqs.filter((f: any) => 
-                            f?.question?.length > 5 && f?.answer?.length > 20
-                        );
-                        if (validFaqs.length > 0) {
-                            contentParts.push(createFAQAccordion(validFaqs));
-                            log(`   ✅ FAQ: ${validFaqs.length} questions`);
-                        }
-                    } else {
-                        const defaultFaqs = [
-                            { question: `What is ${config.topic}?`, answer: `A systematic approach to achieving goals through proven methods and consistent execution.` },
-                            { question: `How long does it take to see results?`, answer: `Most people see initial results within 30-90 days of consistent effort.` },
-                            { question: `What are the most common mistakes?`, answer: `Trying too much at once, not tracking progress, and giving up too early.` },
-                            { question: `Do I need special tools to get started?`, answer: `Start with basics. Fundamentals work regardless of tools.` }
-                        ];
-                        contentParts.push(createFAQAccordion(defaultFaqs));
-                    }
-                    
-                    // References
-                    if (references.length > 0) {
-                        contentParts.push(createReferencesSection(references));
-                        log(`   ✅ References: ${references.length} sources`);
-                    }
-                    
-                    // Final CTA
-                    contentParts.push(createHighlightBox(
-                        `You have everything you need. Will you take action? Start today.`,
-                        '🚀', '#10b981'
-                    ));
-                    contentParts.push(createCalloutBox(
-                        `The gap between where you are and where you want to be is bridged by action. Go.`,
-                        'success'
-                    ));
-                    
-                    contentParts.push('</div>');
-                    
-                    let assembledContent = contentParts.filter(Boolean).join('\n\n');
-                    
-                    // ═══════════════════════════════════════════════════════════
-                    // PHASE 5: INTERNAL LINKS
-                    // ═══════════════════════════════════════════════════════════
-                    
-                    if (config.internalLinks?.length > 0) {
-                        log(`🔗 Phase 5: Internal Link Injection`);
-                        
-                        const linkResult = injectInternalLinksDistributed(
-                            assembledContent,
-                            config.internalLinks,
-                            '',
-                            log
-                        );
-                        
-                        assembledContent = linkResult.html;
-                        log(`   ✅ ${linkResult.totalLinks} links injected`);
-                    }
-                    
-                    const finalContract: ContentContract = {
-                        ...rawContract,
-                        htmlContent: assembledContent,
-                        wordCount: countWords(assembledContent)
-                    };
-                    
-                    log(`📊 Final: ${finalContract.wordCount} words`);
-                    
-                    if (finalContract.wordCount >= 2000) {
-                        const totalTime = Date.now() - startTime;
-                        log(`🎉 SUCCESS in ${(totalTime / 1000).toFixed(1)}s`);
-                        return { 
-                            contract: finalContract, 
-                            generationMethod: 'single-shot', 
-                            attempts: attempt, 
-                            totalTime,
-                            youtubeVideo: youtubeVideo || undefined,
-                            references
-                        };
-                    }
                 }
-            } catch (err: any) {
-                log(`   ❌ Attempt ${attempt} error: ${err.message}`);
+            });
+            
+            contentParts.push(createDefinitionBox(
+                config.topic,
+                `A systematic approach to achieving measurable results through proven strategies and consistent execution.`
+            ));
+            
+            contentParts.push(createKeyTakeaways(keyTakeaways));
+            
+            if (faqs.length > 0) {
+                contentParts.push(createFAQAccordion(faqs));
             }
             
-            if (attempt < 3) await sleep(2000 * attempt);
-        }
-        
-        throw new Error('Content generation failed after 3 attempts');
-    }
-    
-    async generate(config: GenerateConfig, log: LogFunction): Promise<GenerationResult> {
-        return this.generateSingleShot(config, log);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📤 EXPORTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export const orchestrator = new AIOrchestrator();
-
-export const VALID_GEMINI_MODELS: Record<string, string> = {
-    'gemini-2.5-flash-preview-05-20': 'Gemini 2.5 Flash Preview',
-    'gemini-2.5-pro-preview-05-06': 'Gemini 2.5 Pro Preview',
-    'gemini-2.0-flash': 'Gemini 2.0 Flash',
-    'gemini-1.5-pro': 'Gemini 1.5 Pro',
-};
-
-export const OPENROUTER_MODELS = [
-    'anthropic/claude-sonnet-4',
-    'anthropic/claude-opus-4',
-    'google/gemini-2.5-flash-preview',
-    'google/gemini-2.5-pro-preview',
-    'openai/gpt-4o',
-    'deepseek/deepseek-chat',
-    'meta-llama/llama-3.3-70b-instruct',
-];
-
-export default orchestrator;
+            contentParts.push(conclusionHtml);
+            
+            if (references.length > 0) {
+                contentParts.push(createReferencesSection(references));
+                log(`   ✅ References section: ${references.length} sources`);
+            }
+            
+            contentParts.push(createHighlightBox(
+                'You have everything you need. Will you take action? Start today.',
+                '🚀', '#10b981'
+            ));
+            
+            contentParts.push('</div>');
+            
+            let assembledContent = contentParts.filter(Boolean).join('\n\n');
+            assembledContent = removeAllH1Tags(assembledContent, log);
+            
+            // ═══════════════════════════════════════════════════════════════
+            // STAGE 8: INTERNAL LINKS
+            // ═══════════════════════════════════════════════════════════════
+            
+            if (config.internalLinks && config.internalLinks.length > 0) {
+                log(`🔗 Stage 8: Injecting internal links...`);
+                
+                const linkResult = injectInternalLinksDistrib
