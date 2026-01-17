@@ -1,13 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// WP OPTIMIZER PRO v33.0 — ENTERPRISE SOTA AI ORCHESTRATOR
+// WP OPTIMIZER PRO v36.0 — ULTIMATE ENTERPRISE AI ORCHESTRATOR
 // ═══════════════════════════════════════════════════════════════════════════════
 // 
-// CRITICAL FIXES IMPLEMENTED:
-// ✅ YouTube Promise — Properly awaited with Promise.allSettled + explicit reassignment
-// ✅ H2 Extraction — Uses split() method (matchAll was returning empty)
-// ✅ Internal Links — Removed generic fallback, only semantic matches
-// ✅ Visual Components — 25+ components injected via Content Breathing Engine
-// ✅ References — Properly awaited alongside YouTube
+// ENTERPRISE FEATURES:
+// ✅ 5-Phase Pipeline: Discovery → Generation → Enrichment → Linking → Delivery
+// ✅ Promise.allSettled: Bulletproof parallel task handling
+// ✅ 25+ Visual Components: Injected via Content Breathing Engine
+// ✅ Semantic Link Matching: NLP-lite anchor text (NO generic fallbacks)
+// ✅ JSON Healing: 5-strategy recovery for malformed LLM responses
+// ✅ Circuit Breaker: Fails fast on repeated API errors
+// ✅ Multi-Provider: Google, OpenRouter, OpenAI, Anthropic, Groq
+// ✅ Schema.org: FAQ, HowTo, VideoObject structured data
+// ✅ Zero-CLS YouTube: Lite embed with click-to-load
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { GoogleGenAI } from '@google/genai';
@@ -30,7 +34,7 @@ import {
 // 📌 VERSION & CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const AI_ORCHESTRATOR_VERSION = "33.0.0";
+export const AI_ORCHESTRATOR_VERSION = "36.0.0";
 
 const TIMEOUTS = {
     OUTLINE_GENERATION: 60000,
@@ -43,9 +47,9 @@ const TIMEOUTS = {
 
 const CONTENT_TARGETS = {
     MIN_WORDS: 3000,
-    TARGET_WORDS: 4000,
-    MAX_WORDS: 5000,
-    SECTION_WORDS: 350,
+    TARGET_WORDS: 4500,
+    MAX_WORDS: 6000,
+    SECTION_WORDS: 400,
 } as const;
 
 const LINK_CONFIG = {
@@ -58,6 +62,78 @@ const now = new Date();
 const currentMonth = now.getMonth();
 const currentYear = now.getFullYear();
 export const CONTENT_YEAR = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 DESIGN SYSTEM TOKENS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TOKENS = {
+    colors: {
+        primary: '#6366f1',
+        primaryDark: '#4f46e5',
+        primaryBg: '#eef2ff',
+        primaryBorder: '#c7d2fe',
+        success: '#22c55e',
+        successDark: '#16a34a',
+        successBg: '#f0fdf4',
+        successBorder: '#bbf7d0',
+        warning: '#f59e0b',
+        warningDark: '#d97706',
+        warningBg: '#fffbeb',
+        warningBorder: '#fde68a',
+        danger: '#ef4444',
+        dangerDark: '#dc2626',
+        dangerBg: '#fef2f2',
+        dangerBorder: '#fecaca',
+        info: '#3b82f6',
+        infoDark: '#2563eb',
+        infoBg: '#eff6ff',
+        infoBorder: '#bfdbfe',
+        white: '#ffffff',
+        gray50: '#f8fafc',
+        gray100: '#f1f5f9',
+        gray200: '#e2e8f0',
+        gray300: '#cbd5e1',
+        gray400: '#94a3b8',
+        gray500: '#64748b',
+        gray600: '#475569',
+        gray700: '#334155',
+        gray800: '#1e293b',
+        gray900: '#0f172a',
+    },
+    gradients: {
+        primary: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        success: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+        warning: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        danger: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        info: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+        purple: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        teal: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+        sunset: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        ocean: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+        midnight: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+    },
+    shadows: {
+        sm: '0 1px 2px rgba(0,0,0,0.05)',
+        md: '0 4px 12px rgba(0,0,0,0.08)',
+        lg: '0 12px 32px rgba(0,0,0,0.12)',
+        xl: '0 20px 48px rgba(0,0,0,0.15)',
+        primary: '0 12px 28px rgba(99,102,241,0.35)',
+        success: '0 12px 28px rgba(34,197,94,0.35)',
+        danger: '0 12px 28px rgba(239,68,68,0.35)',
+        info: '0 12px 28px rgba(59,130,246,0.35)',
+        purple: '0 20px 40px rgba(102,126,234,0.35)',
+        teal: '0 16px 36px rgba(17,153,142,0.3)'
+    },
+    radius: {
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        xxl: '24px',
+        full: '50%'
+    }
+} as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📊 TYPE DEFINITIONS
@@ -89,6 +165,7 @@ export interface YouTubeVideoData {
     thumbnailUrl: string;
     embedUrl: string;
     relevanceScore: number;
+    description?: string;
 }
 
 export interface DiscoveredReference {
@@ -148,7 +225,10 @@ function recordSuccess(provider: string): void {
 function isCircuitOpen(provider: string): boolean {
     const breaker = getCircuitBreaker(provider);
     if (!breaker.isOpen) return false;
-    if (Date.now() - breaker.lastFailure > 60000) return false;
+    if (Date.now() - breaker.lastFailure > 60000) {
+        breaker.isOpen = false;
+        return false;
+    }
     return true;
 }
 
@@ -182,13 +262,17 @@ function extractDomain(url: string): string {
     }
 }
 
-function extractSlugFromUrl(url: string): string {
-    try {
-        const parts = new URL(url).pathname.split('/').filter(Boolean);
-        return parts[parts.length - 1] || '';
-    } catch {
-        return url.split('/').filter(Boolean).pop() || '';
-    }
+function truncate(str: string, max: number): string {
+    if (!str || str.length <= max) return str || '';
+    return str.substring(0, max - 3) + '...';
+}
+
+function isValidArray<T>(arr: T[] | undefined | null): arr is T[] {
+    return Array.isArray(arr) && arr.length > 0;
+}
+
+function isValidString(str: string | undefined | null): str is string {
+    return typeof str === 'string' && str.trim().length > 0;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -197,180 +281,191 @@ function extractSlugFromUrl(url: string): string {
 
 export const THEME_ADAPTIVE_CSS = `
 <style>
-.wpo-content {
-  --wpo-primary: #6366f1;
-  --wpo-success: #10b981;
-  --wpo-warning: #f59e0b;
-  --wpo-danger: #ef4444;
-  --wpo-info: #3b82f6;
-  --wpo-bg-subtle: rgba(128, 128, 128, 0.06);
-  --wpo-border: rgba(128, 128, 128, 0.15);
-  --wpo-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-family: var(--wpo-font);
-  line-height: 1.8;
-  font-size: clamp(16px, 2.5vw, 18px);
+/* WP Optimizer Pro v36.0 - Bulletproof Reset */
+#wpo-engine-root, #wpo-engine-root *, #wpo-engine-root *::before, #wpo-engine-root *::after {
+    box-sizing: border-box !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
 }
-.wpo-content h2 { font-size: clamp(1.5rem, 4vw, 1.875rem); font-weight: 700; line-height: 1.3; margin: 2.5rem 0 1.25rem; }
-.wpo-content h3 { font-size: clamp(1.25rem, 3vw, 1.5rem); font-weight: 600; line-height: 1.4; margin: 2rem 0 1rem; }
-.wpo-content p { margin: 0 0 1rem; line-height: 1.8; }
-.wpo-content ul, .wpo-content ol { margin: 1rem 0; padding-left: 1.5rem; }
-.wpo-content li { margin: 0.5rem 0; line-height: 1.7; }
-.wpo-content a { color: var(--wpo-primary); text-decoration: underline; text-decoration-color: rgba(99, 102, 241, 0.3); text-underline-offset: 3px; }
-.wpo-content a:hover { text-decoration-color: var(--wpo-primary); }
-.wpo-box { border-radius: 16px; padding: 24px; margin: 32px 0; border: 1px solid var(--wpo-border); background: var(--wpo-bg-subtle); }
-@media (max-width: 768px) { .wpo-content { font-size: 16px; } .wpo-box { padding: 16px; margin: 24px 0; } }
+#wpo-engine-root {
+    line-height: 1.7 !important;
+    color: ${TOKENS.colors.gray800} !important;
+    font-size: 18px !important;
+    max-width: 100% !important;
+}
+#wpo-engine-root img { max-width: 100% !important; height: auto !important; display: block !important; }
+#wpo-engine-root a { text-decoration: none !important; transition: opacity 0.2s ease !important; }
+#wpo-engine-root a:hover { opacity: 0.85 !important; }
+#wpo-engine-root ul, #wpo-engine-root ol { list-style: none !important; padding: 0 !important; margin: 0 !important; }
+#wpo-engine-root p { margin: 0 0 1rem 0 !important; }
+#wpo-engine-root h2, #wpo-engine-root h3, #wpo-engine-root h4 { margin: 0 !important; line-height: 1.3 !important; }
+#wpo-engine-root details summary { cursor: pointer !important; list-style: none !important; }
+#wpo-engine-root details summary::-webkit-details-marker { display: none !important; }
+#wpo-engine-root details summary::marker { display: none !important; }
+#wpo-engine-root .wpo-video-wrap { position: relative !important; padding-bottom: 56.25% !important; height: 0 !important; overflow: hidden !important; }
+#wpo-engine-root .wpo-video-wrap iframe { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: none !important; }
+@media (max-width: 640px) {
+    #wpo-engine-root { font-size: 16px !important; }
+}
 </style>
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🎨 VISUAL COMPONENT GENERATORS
+// 🎨 VISUAL COMPONENT GENERATORS (25+ Components)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function createQuickAnswerBox(answer: string, title: string = 'Quick Answer'): string {
-    if (!answer) return '';
+    if (!isValidString(answer)) return '';
+    
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-radius: 20px !important; padding: 32px !important; margin: 40px 0 !important; color: white !important; box-shadow: 0 20px 40px rgba(102,126,234,0.3) !important;">
-    <div style="display: flex !important; align-items: flex-start !important; gap: 20px !important; flex-wrap: wrap !important;">
-        <div style="min-width: 60px !important; height: 60px !important; background: rgba(255,255,255,0.2) !important; backdrop-filter: blur(10px) !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
-            <span style="font-size: 28px !important;">⚡</span>
+<div style="background: ${TOKENS.gradients.purple} !important; border-radius: ${TOKENS.radius.xl} !important; padding: 32px !important; margin: 40px 0 !important; color: ${TOKENS.colors.white} !important; box-shadow: ${TOKENS.shadows.purple} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: flex-start !important; gap: 24px !important; flex-wrap: wrap !important;">
+        <div style="width: 64px !important; height: 64px !important; min-width: 64px !important; background: rgba(255,255,255,0.2) !important; backdrop-filter: blur(10px) !important; border-radius: ${TOKENS.radius.lg} !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
+            <span style="font-size: 32px !important; line-height: 1 !important;">⚡</span>
         </div>
         <div style="flex: 1 !important; min-width: 250px !important;">
-            <div style="font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; opacity: 0.9 !important; margin-bottom: 10px !important;">${escapeHtml(title)}</div>
-            <p style="font-size: 18px !important; line-height: 1.7 !important; margin: 0 !important; font-weight: 500 !important;">${answer}</p>
+            <div style="font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: rgba(255,255,255,0.9) !important; margin-bottom: 10px !important;">${escapeHtml(title)}</div>
+            <p style="font-size: 18px !important; line-height: 1.7 !important; color: ${TOKENS.colors.white} !important; margin: 0 !important; font-weight: 500 !important;">${answer}</p>
         </div>
     </div>
 </div>`;
 }
 
 export function createProTipBox(tip: string, title: string = 'Pro Tip'): string {
-    if (!tip) return '';
+    if (!isValidString(tip)) return '';
+    
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important; border-radius: 20px !important; padding: 28px !important; margin: 36px 0 !important; color: white !important; box-shadow: 0 16px 32px rgba(17,153,142,0.25) !important;">
-    <div style="display: flex !important; align-items: flex-start !important; gap: 18px !important; flex-wrap: wrap !important;">
-        <div style="min-width: 52px !important; height: 52px !important; background: rgba(255,255,255,0.2) !important; backdrop-filter: blur(10px) !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
-            <span style="font-size: 24px !important;">💡</span>
+<div style="background: ${TOKENS.gradients.teal} !important; border-radius: ${TOKENS.radius.xl} !important; padding: 28px 32px !important; margin: 36px 0 !important; color: ${TOKENS.colors.white} !important; box-shadow: ${TOKENS.shadows.teal} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: flex-start !important; gap: 20px !important; flex-wrap: wrap !important;">
+        <div style="width: 56px !important; height: 56px !important; min-width: 56px !important; background: rgba(255,255,255,0.2) !important; backdrop-filter: blur(10px) !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
+            <span style="font-size: 28px !important; line-height: 1 !important;">💡</span>
         </div>
         <div style="flex: 1 !important; min-width: 250px !important;">
-            <div style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; opacity: 0.9 !important; margin-bottom: 8px !important;">${escapeHtml(title)}</div>
-            <p style="font-size: 16px !important; line-height: 1.7 !important; margin: 0 !important;">${tip}</p>
+            <div style="font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: rgba(255,255,255,0.9) !important; margin-bottom: 8px !important;">${escapeHtml(title)}</div>
+            <p style="font-size: 16px !important; line-height: 1.7 !important; color: ${TOKENS.colors.white} !important; margin: 0 !important;">${tip}</p>
         </div>
     </div>
 </div>`;
 }
 
-export function createWarningBox(warning: string, title: string = 'Important'): string {
-    if (!warning) return '';
+export function createWarningBox(warning: string, title: string = 'Warning'): string {
+    if (!isValidString(warning)) return '';
+    
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important; border-radius: 20px !important; padding: 28px !important; margin: 36px 0 !important; color: white !important; box-shadow: 0 16px 32px rgba(245,87,108,0.25) !important;">
-    <div style="display: flex !important; align-items: flex-start !important; gap: 18px !important; flex-wrap: wrap !important;">
-        <div style="min-width: 52px !important; height: 52px !important; background: rgba(255,255,255,0.2) !important; backdrop-filter: blur(10px) !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
-            <span style="font-size: 24px !important;">⚠️</span>
+<div style="background: ${TOKENS.gradients.sunset} !important; border-radius: ${TOKENS.radius.xl} !important; padding: 28px 32px !important; margin: 36px 0 !important; color: ${TOKENS.colors.white} !important; box-shadow: 0 16px 36px rgba(245,87,108,0.3) !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: flex-start !important; gap: 20px !important; flex-wrap: wrap !important;">
+        <div style="width: 56px !important; height: 56px !important; min-width: 56px !important; background: rgba(255,255,255,0.2) !important; backdrop-filter: blur(10px) !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
+            <span style="font-size: 28px !important; line-height: 1 !important;">⚠️</span>
         </div>
         <div style="flex: 1 !important; min-width: 250px !important;">
-            <div style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 2px !important; opacity: 0.9 !important; margin-bottom: 8px !important;">${escapeHtml(title)}</div>
-            <p style="font-size: 16px !important; line-height: 1.7 !important; margin: 0 !important;">${warning}</p>
+            <div style="font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 2px !important; color: rgba(255,255,255,0.9) !important; margin-bottom: 8px !important;">${escapeHtml(title)}</div>
+            <p style="font-size: 16px !important; line-height: 1.7 !important; color: ${TOKENS.colors.white} !important; margin: 0 !important;">${warning}</p>
         </div>
     </div>
 </div>`;
 }
 
 export function createExpertQuoteBox(quote: string, author: string, title?: string): string {
-    if (!quote || !author) return '';
+    if (!isValidString(quote) || !isValidString(author)) return '';
+    
     return `
-<blockquote class="wpo-box" style="background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.03) 100%) !important; border-left: 4px solid #6366f1 !important; font-style: normal !important; padding: 28px 32px !important; margin: 40px 0 !important;">
-    <div style="font-size: 28px !important; color: #6366f1 !important; opacity: 0.5 !important; line-height: 1 !important; margin-bottom: 12px !important;">"</div>
-    <p style="font-size: 18px !important; line-height: 1.8 !important; font-style: italic !important; margin: 0 0 20px 0 !important;">${quote}</p>
-    <footer style="display: flex !important; align-items: center !important; gap: 12px !important; flex-wrap: wrap !important;">
-        <div style="width: 44px !important; height: 44px !important; background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 20px !important;">👤</div>
+<blockquote style="background: linear-gradient(135deg, ${TOKENS.colors.primaryBg} 0%, #f0f4ff 100%) !important; border-left: 5px solid ${TOKENS.colors.primary} !important; border-radius: 0 ${TOKENS.radius.xl} ${TOKENS.radius.xl} 0 !important; padding: 32px 36px !important; margin: 40px 0 !important; box-shadow: ${TOKENS.shadows.md} !important; font-style: normal !important; overflow: hidden !important;">
+    <div style="font-size: 48px !important; color: ${TOKENS.colors.primary} !important; opacity: 0.4 !important; line-height: 1 !important; margin-bottom: 12px !important; font-family: Georgia, serif !important;">"</div>
+    <p style="font-size: 19px !important; line-height: 1.8 !important; font-style: italic !important; margin: 0 0 24px 0 !important; color: ${TOKENS.colors.gray800} !important;">${quote}</p>
+    <footer style="display: flex !important; align-items: center !important; gap: 16px !important; flex-wrap: wrap !important;">
+        <div style="width: 52px !important; height: 52px !important; min-width: 52px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.full} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important;">
+            <span style="font-size: 24px !important;">👤</span>
+        </div>
         <div>
-            <cite style="font-style: normal !important; font-weight: 700 !important; font-size: 15px !important; display: block !important;">${escapeHtml(author)}</cite>
-            ${title ? `<span style="font-size: 13px !important; opacity: 0.6 !important;">${escapeHtml(title)}</span>` : ''}
+            <cite style="font-style: normal !important; font-weight: 800 !important; font-size: 16px !important; display: block !important; color: ${TOKENS.colors.gray800} !important;">${escapeHtml(author)}</cite>
+            ${title ? `<span style="font-size: 14px !important; color: ${TOKENS.colors.gray500} !important;">${escapeHtml(title)}</span>` : ''}
         </div>
     </footer>
 </blockquote>`;
 }
 
-export function createHighlightBox(text: string, icon: string = '✨', bgColor: string = '#6366f1'): string {
-    if (!text) return '';
+export function createHighlightBox(text: string, icon: string = '✨', bgColor: string = TOKENS.colors.primary): string {
+    if (!isValidString(text)) return '';
+    
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, ${bgColor} 0%, ${bgColor}dd 100%) !important; border-radius: 20px !important; padding: 28px 32px !important; margin: 40px 0 !important; color: white !important; box-shadow: 0 16px 40px ${bgColor}40 !important;">
-    <div style="display: flex !important; align-items: center !important; gap: 18px !important; flex-wrap: wrap !important;">
-        <span style="font-size: 36px !important; flex-shrink: 0 !important;">${icon}</span>
-        <p style="font-size: 18px !important; line-height: 1.7 !important; margin: 0 !important; font-weight: 500 !important; flex: 1 !important; min-width: 200px !important;">${text}</p>
+<div style="background: linear-gradient(135deg, ${bgColor} 0%, ${bgColor}dd 100%) !important; border-radius: ${TOKENS.radius.xl} !important; padding: 30px 36px !important; margin: 40px 0 !important; box-shadow: 0 16px 40px ${bgColor}40 !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: center !important; gap: 20px !important; flex-wrap: wrap !important;">
+        <span style="font-size: 42px !important; line-height: 1 !important; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)) !important;">${icon}</span>
+        <p style="flex: 1 !important; font-size: 18px !important; line-height: 1.7 !important; color: ${TOKENS.colors.white} !important; margin: 0 !important; font-weight: 600 !important; min-width: 200px !important;">${text}</p>
     </div>
 </div>`;
 }
 
 export function createCalloutBox(text: string, type: 'info' | 'success' | 'warning' | 'error' = 'info'): string {
-    if (!text) return '';
+    if (!isValidString(text)) return '';
+    
     const configs = {
-        info: { bg: 'rgba(59,130,246,0.08)', border: '#3b82f6', icon: 'ℹ️', label: 'Info' },
-        success: { bg: 'rgba(16,185,129,0.08)', border: '#10b981', icon: '✅', label: 'Success' },
-        warning: { bg: 'rgba(245,158,11,0.08)', border: '#f59e0b', icon: '⚠️', label: 'Warning' },
-        error: { bg: 'rgba(239,68,68,0.08)', border: '#ef4444', icon: '🚫', label: 'Important' }
+        info: { bg: TOKENS.colors.infoBg, border: TOKENS.colors.info, icon: 'ℹ️', label: 'Info' },
+        success: { bg: TOKENS.colors.successBg, border: TOKENS.colors.success, icon: '✅', label: 'Success' },
+        warning: { bg: TOKENS.colors.warningBg, border: TOKENS.colors.warning, icon: '⚡', label: 'Note' },
+        error: { bg: TOKENS.colors.dangerBg, border: TOKENS.colors.danger, icon: '🔥', label: 'Important' }
     };
     const c = configs[type];
     
     return `
-<div class="wpo-box" style="background: ${c.bg} !important; border: 1px solid ${c.border}30 !important; border-left: 4px solid ${c.border} !important; border-radius: 0 16px 16px 0 !important; padding: 20px 24px !important; margin: 32px 0 !important;">
-    <div style="display: flex !important; align-items: flex-start !important; gap: 14px !important; flex-wrap: wrap !important;">
-        <span style="font-size: 22px !important; flex-shrink: 0 !important;">${c.icon}</span>
+<div style="background: ${c.bg} !important; border: none !important; border-left: 5px solid ${c.border} !important; border-radius: 0 ${TOKENS.radius.lg} ${TOKENS.radius.lg} 0 !important; padding: 24px 28px !important; margin: 32px 0 !important; box-shadow: ${TOKENS.shadows.sm} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: flex-start !important; gap: 16px !important; flex-wrap: wrap !important;">
+        <span style="font-size: 26px !important; line-height: 1 !important;">${c.icon}</span>
         <div style="flex: 1 !important; min-width: 200px !important;">
-            <div style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: ${c.border} !important; margin-bottom: 6px !important;">${c.label}</div>
-            <p style="font-size: 15px !important; line-height: 1.7 !important; margin: 0 !important;">${text}</p>
+            <div style="font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: ${c.border} !important; margin-bottom: 6px !important;">${c.label}</div>
+            <p style="font-size: 15px !important; line-height: 1.7 !important; color: ${TOKENS.colors.gray700} !important; margin: 0 !important;">${text}</p>
         </div>
     </div>
 </div>`;
 }
 
 export function createStatisticsBox(stats: Array<{ value: string; label: string; icon?: string }>): string {
-    if (!stats || stats.length === 0) return '';
+    if (!isValidArray(stats)) return '';
     
-    const statItems = stats.map(stat => `
-        <div style="flex: 1 !important; min-width: 140px !important; text-align: center !important; padding: 28px 16px !important; background: rgba(255,255,255,0.5) !important; border-radius: 16px !important; box-shadow: 0 2px 12px rgba(0,0,0,0.04) !important;">
-            <div style="font-size: 16px !important; margin-bottom: 10px !important;">${stat.icon || '📊'}</div>
-            <div style="font-size: 36px !important; font-weight: 800 !important; background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; margin-bottom: 8px !important; line-height: 1 !important;">${escapeHtml(stat.value)}</div>
-            <div style="font-size: 13px !important; opacity: 0.7 !important; font-weight: 600 !important;">${escapeHtml(stat.label)}</div>
+    const items = stats.map(stat => `
+        <div style="flex: 1 !important; min-width: 140px !important; text-align: center !important; padding: 28px 20px !important; background: ${TOKENS.colors.white} !important; border-radius: ${TOKENS.radius.lg} !important; box-shadow: ${TOKENS.shadows.md} !important; border: 1px solid ${TOKENS.colors.gray100} !important;">
+            ${stat.icon ? `<div style="font-size: 28px !important; margin-bottom: 12px !important;">${stat.icon}</div>` : ''}
+            <div style="font-size: 36px !important; font-weight: 900 !important; background: ${TOKENS.gradients.primary} !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; margin-bottom: 8px !important; line-height: 1 !important;">${escapeHtml(stat.value)}</div>
+            <div style="font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: ${TOKENS.colors.gray500} !important;">${escapeHtml(stat.label)}</div>
         </div>
     `).join('');
 
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.03) 100%) !important; border: 2px solid rgba(99,102,241,0.1) !important; border-radius: 24px !important; padding: 24px !important; margin: 48px 0 !important;">
-    <div style="display: flex !important; flex-wrap: wrap !important; justify-content: center !important; gap: 16px !important;">
-        ${statItems}
+<div style="background: linear-gradient(135deg, ${TOKENS.colors.gray50} 0%, ${TOKENS.colors.gray100} 100%) !important; border: 1px solid ${TOKENS.colors.gray200} !important; border-radius: ${TOKENS.radius.xxl} !important; padding: 32px !important; margin: 48px 0 !important; overflow: hidden !important;">
+    <div style="display: flex !important; flex-wrap: wrap !important; justify-content: center !important; gap: 20px !important;">
+        ${items}
     </div>
 </div>`;
 }
 
 export function createDataTable(title: string, headers: string[], rows: string[][], sourceNote?: string): string {
-    if (!rows || rows.length === 0) return '';
+    if (!isValidString(title) || !isValidArray(headers) || !isValidArray(rows)) return '';
     
     const headerCells = headers.map(h => `
-        <th style="padding: 14px 18px !important; text-align: left !important; font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.05) 100%) !important; border-bottom: 2px solid rgba(99,102,241,0.2) !important;">${escapeHtml(h)}</th>
+        <th style="padding: 16px 20px !important; text-align: left !important; font-size: 12px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; background: ${TOKENS.colors.gray100} !important; color: ${TOKENS.colors.primary} !important; border-bottom: 2px solid ${TOKENS.colors.primaryBorder} !important;">${escapeHtml(h)}</th>
     `).join('');
     
     const tableRows = rows.map((row, i) => {
         const cells = row.map((cell, j) => `
-            <td style="padding: 14px 18px !important; font-size: 14px !important; border-bottom: 1px solid rgba(128,128,128,0.08) !important; ${j === 0 ? 'font-weight: 600 !important;' : ''}">${escapeHtml(cell)}</td>
+            <td style="padding: 16px 20px !important; font-size: 14px !important; border-bottom: 1px solid ${TOKENS.colors.gray100} !important; color: ${TOKENS.colors.gray700} !important; ${j === 0 ? 'font-weight: 600 !important;' : ''} background: ${i % 2 === 0 ? TOKENS.colors.white : TOKENS.colors.gray50} !important;">${escapeHtml(cell)}</td>
         `).join('');
-        return `<tr style="background: ${i % 2 === 0 ? 'transparent' : 'rgba(128,128,128,0.02)'} !important;">${cells}</tr>`;
+        return `<tr>${cells}</tr>`;
     }).join('');
 
     return `
-<div class="wpo-box" style="border: 1px solid rgba(128,128,128,0.12) !important; border-radius: 20px !important; overflow: hidden !important; margin: 48px 0 !important; box-shadow: 0 4px 24px rgba(0,0,0,0.04) !important;">
-    <div style="padding: 20px 24px !important; background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.04) 100%) !important; border-bottom: 1px solid rgba(128,128,128,0.1) !important;">
-        <div style="display: flex !important; align-items: center !important; gap: 14px !important; flex-wrap: wrap !important;">
-            <div style="width: 48px !important; height: 48px !important; background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 8px 20px rgba(99,102,241,0.25) !important;">
-                <span style="font-size: 22px !important;">📊</span>
+<div style="border-radius: ${TOKENS.radius.xl} !important; overflow: hidden !important; margin: 48px 0 !important; box-shadow: ${TOKENS.shadows.lg} !important; border: 1px solid ${TOKENS.colors.gray200} !important;">
+    <div style="padding: 24px 28px !important; background: linear-gradient(135deg, ${TOKENS.colors.gray50} 0%, ${TOKENS.colors.gray100} 100%) !important; border-bottom: 1px solid ${TOKENS.colors.gray200} !important;">
+        <div style="display: flex !important; align-items: center !important; gap: 16px !important; flex-wrap: wrap !important;">
+            <div style="width: 52px !important; height: 52px !important; min-width: 52px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important;">
+                <span style="font-size: 24px !important;">📊</span>
             </div>
             <div>
-                <h3 style="font-size: 18px !important; font-weight: 700 !important; margin: 0 !important;">${escapeHtml(title)}</h3>
-                ${sourceNote ? `<p style="font-size: 12px !important; opacity: 0.6 !important; margin: 4px 0 0 0 !important;">Source: ${escapeHtml(sourceNote)}</p>` : ''}
+                <h4 style="font-size: 20px !important; font-weight: 800 !important; margin: 0 !important; color: ${TOKENS.colors.gray800} !important;">${escapeHtml(title)}</h4>
+                ${sourceNote ? `<p style="font-size: 13px !important; color: ${TOKENS.colors.gray500} !important; margin: 4px 0 0 0 !important;">Source: ${escapeHtml(sourceNote)}</p>` : ''}
             </div>
         </div>
     </div>
     <div style="overflow-x: auto !important;">
-        <table style="width: 100% !important; border-collapse: collapse !important; min-width: 500px !important;">
+        <table style="width: 100% !important; border-collapse: collapse !important; min-width: 450px !important;">
             <thead><tr>${headerCells}</tr></thead>
             <tbody>${tableRows}</tbody>
         </table>
@@ -379,81 +474,96 @@ export function createDataTable(title: string, headers: string[], rows: string[]
 }
 
 export function createChecklistBox(title: string, items: string[], icon: string = '✅'): string {
-    if (!items || items.length === 0) return '';
+    if (!isValidString(title) || !isValidArray(items)) return '';
     
-    const checkItems = items.map((item, i) => `
-        <li style="display: flex !important; align-items: flex-start !important; gap: 14px !important; padding: 14px 0 !important; ${i < items.length - 1 ? 'border-bottom: 1px solid rgba(16,185,129,0.1) !important;' : ''}">
-            <span style="font-size: 18px !important; flex-shrink: 0 !important; margin-top: 2px !important;">${icon}</span>
-            <span style="font-size: 15px !important; line-height: 1.6 !important;">${escapeHtml(item)}</span>
+    const listItems = items.map((item, i) => `
+        <li style="display: flex !important; align-items: flex-start !important; gap: 16px !important; padding: 16px 0 !important; ${i < items.length - 1 ? `border-bottom: 1px solid ${TOKENS.colors.successBorder} !important;` : ''}">
+            <span style="font-size: 22px !important; line-height: 1.4 !important; flex-shrink: 0 !important;">${icon}</span>
+            <span style="font-size: 15px !important; line-height: 1.7 !important; color: ${TOKENS.colors.gray700} !important;">${escapeHtml(item)}</span>
         </li>
     `).join('');
 
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(34,197,94,0.02) 100%) !important; border: 2px solid rgba(16,185,129,0.15) !important; border-radius: 20px !important; padding: 28px !important; margin: 40px 0 !important;">
-    <div style="display: flex !important; align-items: center !important; gap: 14px !important; margin-bottom: 20px !important; flex-wrap: wrap !important;">
-        <div style="width: 48px !important; height: 48px !important; background: linear-gradient(135deg, #10b981, #059669) !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 8px 20px rgba(16,185,129,0.25) !important;">
-            <span style="font-size: 22px !important;">📝</span>
+<div style="background: linear-gradient(135deg, ${TOKENS.colors.successBg} 0%, #ecfdf5 100%) !important; border: 2px solid ${TOKENS.colors.successBorder} !important; border-radius: ${TOKENS.radius.xl} !important; padding: 32px !important; margin: 40px 0 !important; box-shadow: ${TOKENS.shadows.md} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: center !important; gap: 16px !important; margin-bottom: 24px !important; flex-wrap: wrap !important;">
+        <div style="width: 52px !important; height: 52px !important; min-width: 52px !important; background: ${TOKENS.gradients.success} !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.success} !important;">
+            <span style="font-size: 24px !important;">📝</span>
         </div>
-        <h3 style="font-size: 20px !important; font-weight: 800 !important; margin: 0 !important;">${escapeHtml(title)}</h3>
+        <h4 style="font-size: 22px !important; font-weight: 800 !important; margin: 0 !important; color: #166534 !important;">${escapeHtml(title)}</h4>
     </div>
-    <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important;">${checkItems}</ul>
+    <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important;">${listItems}</ul>
 </div>`;
 }
 
 export function createStepByStepBox(title: string, steps: Array<{ title: string; description: string }>): string {
-    if (!steps || steps.length === 0) return '';
+    if (!isValidString(title) || !isValidArray(steps)) return '';
+    
+    const howToSchema = {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": title,
+        "step": steps.map((step, i) => ({
+            "@type": "HowToStep",
+            "position": i + 1,
+            "name": step.title,
+            "text": step.description
+        }))
+    };
     
     const stepItems = steps.map((step, i) => `
-        <div style="display: flex !important; gap: 20px !important; ${i < steps.length - 1 ? 'padding-bottom: 24px !important; margin-bottom: 24px !important; border-bottom: 1px dashed rgba(99,102,241,0.2) !important;' : ''}">
-            <div style="flex-shrink: 0 !important;">
-                <div style="width: 52px !important; height: 52px !important; background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; color: white !important; font-size: 20px !important; font-weight: 800 !important; box-shadow: 0 8px 20px rgba(99,102,241,0.3) !important;">${i + 1}</div>
+        <div style="display: flex !important; gap: 24px !important; ${i < steps.length - 1 ? `padding-bottom: 28px !important; margin-bottom: 28px !important; border-bottom: 2px dashed ${TOKENS.colors.primaryBorder} !important;` : ''}">
+            <div style="width: 56px !important; height: 56px !important; min-width: 56px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.full} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important; flex-shrink: 0 !important;">
+                <span style="font-size: 22px !important; font-weight: 900 !important; color: ${TOKENS.colors.white} !important;">${i + 1}</span>
             </div>
-            <div style="flex: 1 !important; padding-top: 6px !important;">
-                <h4 style="font-size: 17px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important;">${escapeHtml(step.title)}</h4>
-                <p style="font-size: 15px !important; line-height: 1.7 !important; margin: 0 !important; opacity: 0.8 !important;">${escapeHtml(step.description)}</p>
+            <div style="flex: 1 !important; padding-top: 8px !important;">
+                <h5 style="font-size: 18px !important; font-weight: 800 !important; margin: 0 0 10px 0 !important; color: ${TOKENS.colors.gray800} !important;">${escapeHtml(step.title)}</h5>
+                <p style="font-size: 15px !important; line-height: 1.7 !important; color: ${TOKENS.colors.gray500} !important; margin: 0 !important;">${escapeHtml(step.description)}</p>
             </div>
         </div>
     `).join('');
 
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.02) 100%) !important; border: 2px solid rgba(99,102,241,0.1) !important; border-radius: 24px !important; padding: 32px !important; margin: 48px 0 !important;">
-    <div style="display: flex !important; align-items: center !important; gap: 14px !important; margin-bottom: 28px !important; flex-wrap: wrap !important;">
-        <div style="width: 52px !important; height: 52px !important; background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 8px 24px rgba(99,102,241,0.25) !important;">
-            <span style="font-size: 24px !important;">📋</span>
+<script type="application/ld+json">${JSON.stringify(howToSchema)}</script>
+<div style="background: linear-gradient(135deg, ${TOKENS.colors.primaryBg} 0%, ${TOKENS.colors.primaryBorder}40 100%) !important; border: 2px solid ${TOKENS.colors.primaryBorder} !important; border-radius: ${TOKENS.radius.xxl} !important; padding: 36px !important; margin: 48px 0 !important; box-shadow: ${TOKENS.shadows.md} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: center !important; gap: 18px !important; margin-bottom: 32px !important; flex-wrap: wrap !important;">
+        <div style="width: 60px !important; height: 60px !important; min-width: 60px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.xl} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important;">
+            <span style="font-size: 28px !important;">📋</span>
         </div>
-        <h3 style="font-size: 22px !important; font-weight: 800 !important; margin: 0 !important;">${escapeHtml(title)}</h3>
+        <h4 style="font-size: 24px !important; font-weight: 800 !important; margin: 0 !important; color: #3730a3 !important;">${escapeHtml(title)}</h4>
     </div>
     ${stepItems}
 </div>`;
 }
 
 export function createComparisonTable(title: string, headers: [string, string], rows: Array<[string, string]>): string {
-    if (!rows || rows.length === 0) return '';
+    if (!isValidString(title) || !isValidArray(rows)) return '';
     
-    const tableRows = rows.map((row) => `
-        <tr style="border-bottom: 1px solid rgba(128,128,128,0.08) !important;">
-            <td style="padding: 16px 20px !important; font-weight: 500 !important; background: rgba(239,68,68,0.03) !important; width: 50% !important;">
-                <span style="color: #ef4444 !important; margin-right: 8px !important;">✗</span>${escapeHtml(row[0])}
+    const tableRows = rows.map(row => `
+        <tr>
+            <td style="padding: 18px 22px !important; background: ${TOKENS.colors.dangerBg} !important; width: 50% !important; vertical-align: top !important; border-bottom: 1px solid ${TOKENS.colors.dangerBorder} !important;">
+                <span style="color: ${TOKENS.colors.danger} !important; margin-right: 12px !important; font-size: 18px !important;">✗</span>
+                <span style="color: #7f1d1d !important; font-size: 15px !important;">${escapeHtml(row[0])}</span>
             </td>
-            <td style="padding: 16px 20px !important; background: rgba(16,185,129,0.03) !important; width: 50% !important;">
-                <span style="color: #10b981 !important; margin-right: 8px !important;">✓</span>${escapeHtml(row[1])}
+            <td style="padding: 18px 22px !important; background: ${TOKENS.colors.successBg} !important; width: 50% !important; vertical-align: top !important; border-bottom: 1px solid ${TOKENS.colors.successBorder} !important;">
+                <span style="color: ${TOKENS.colors.success} !important; margin-right: 12px !important; font-size: 18px !important;">✓</span>
+                <span style="color: #166534 !important; font-size: 15px !important;">${escapeHtml(row[1])}</span>
             </td>
         </tr>
     `).join('');
 
     return `
-<div class="wpo-box" style="border: 1px solid rgba(128,128,128,0.12) !important; border-radius: 20px !important; overflow: hidden !important; margin: 40px 0 !important;">
-    <div style="padding: 20px 24px !important; background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.04) 100%) !important; border-bottom: 1px solid rgba(128,128,128,0.1) !important;">
-        <div style="display: flex !important; align-items: center !important; gap: 12px !important; flex-wrap: wrap !important;">
-            <span style="font-size: 24px !important;">⚖️</span>
-            <h3 style="font-size: 18px !important; font-weight: 700 !important; margin: 0 !important;">${escapeHtml(title)}</h3>
+<div style="border-radius: ${TOKENS.radius.xl} !important; overflow: hidden !important; margin: 48px 0 !important; box-shadow: ${TOKENS.shadows.lg} !important; border: 1px solid ${TOKENS.colors.gray200} !important;">
+    <div style="padding: 22px 28px !important; background: linear-gradient(135deg, ${TOKENS.colors.gray50} 0%, ${TOKENS.colors.gray100} 100%) !important; border-bottom: 1px solid ${TOKENS.colors.gray200} !important;">
+        <div style="display: flex !important; align-items: center !important; gap: 14px !important; flex-wrap: wrap !important;">
+            <span style="font-size: 28px !important;">⚖️</span>
+            <h4 style="font-size: 20px !important; font-weight: 800 !important; margin: 0 !important; color: ${TOKENS.colors.gray800} !important;">${escapeHtml(title)}</h4>
         </div>
     </div>
     <table style="width: 100% !important; border-collapse: collapse !important;">
         <thead>
-            <tr style="background: rgba(128,128,128,0.04) !important;">
-                <th style="padding: 14px 20px !important; text-align: left !important; font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: #ef4444 !important;">${escapeHtml(headers[0])}</th>
-                <th style="padding: 14px 20px !important; text-align: left !important; font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: #10b981 !important;">${escapeHtml(headers[1])}</th>
+            <tr>
+                <th style="padding: 16px 22px !important; text-align: left !important; font-size: 12px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1px !important; background: ${TOKENS.colors.dangerBg} !important; color: ${TOKENS.colors.danger} !important;">${escapeHtml(headers[0])}</th>
+                <th style="padding: 16px 22px !important; text-align: left !important; font-size: 12px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1px !important; background: ${TOKENS.colors.successBg} !important; color: ${TOKENS.colors.success} !important;">${escapeHtml(headers[1])}</th>
             </tr>
         </thead>
         <tbody>${tableRows}</tbody>
@@ -462,41 +572,42 @@ export function createComparisonTable(title: string, headers: [string, string], 
 }
 
 export function createDefinitionBox(term: string, definition: string): string {
-    if (!term || !definition) return '';
+    if (!isValidString(term) || !isValidString(definition)) return '';
+    
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(37,99,235,0.02) 100%) !important; border-left: 5px solid #3b82f6 !important; border-radius: 0 16px 16px 0 !important; padding: 24px 28px !important; margin: 36px 0 !important;">
-    <div style="display: flex !important; align-items: flex-start !important; gap: 16px !important; flex-wrap: wrap !important;">
-        <div style="width: 48px !important; height: 48px !important; background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
-            <span style="font-size: 22px !important;">📖</span>
+<div style="background: linear-gradient(135deg, ${TOKENS.colors.infoBg} 0%, #dbeafe 100%) !important; border-left: 5px solid ${TOKENS.colors.info} !important; border-radius: 0 ${TOKENS.radius.xl} ${TOKENS.radius.xl} 0 !important; padding: 28px 32px !important; margin: 40px 0 !important; box-shadow: ${TOKENS.shadows.md} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: flex-start !important; gap: 20px !important; flex-wrap: wrap !important;">
+        <div style="width: 56px !important; height: 56px !important; min-width: 56px !important; background: ${TOKENS.gradients.info} !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.info} !important; flex-shrink: 0 !important;">
+            <span style="font-size: 26px !important;">📖</span>
         </div>
         <div style="flex: 1 !important; min-width: 200px !important;">
-            <div style="font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: #3b82f6 !important; margin-bottom: 6px !important;">Definition</div>
-            <h4 style="font-size: 18px !important; font-weight: 700 !important; margin: 0 0 10px 0 !important;">${escapeHtml(term)}</h4>
-            <p style="font-size: 15px !important; line-height: 1.7 !important; margin: 0 !important; opacity: 0.85 !important;">${definition}</p>
+            <div style="font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: ${TOKENS.colors.info} !important; margin-bottom: 6px !important;">Definition</div>
+            <h5 style="font-size: 20px !important; font-weight: 800 !important; margin: 0 0 10px 0 !important; color: ${TOKENS.colors.gray800} !important;">${escapeHtml(term)}</h5>
+            <p style="font-size: 15px !important; line-height: 1.7 !important; color: ${TOKENS.colors.gray600} !important; margin: 0 !important;">${definition}</p>
         </div>
     </div>
 </div>`;
 }
 
 export function createKeyTakeaways(takeaways: string[]): string {
-    if (!takeaways || takeaways.length === 0) return '';
+    if (!isValidArray(takeaways)) return '';
     
     const items = takeaways.map((t, i) => `
-        <li style="display: flex !important; align-items: flex-start !important; gap: 16px !important; padding: 18px 0 !important; ${i < takeaways.length - 1 ? 'border-bottom: 1px solid rgba(99,102,241,0.1) !important;' : ''}">
-            <span style="min-width: 36px !important; height: 36px !important; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; color: white !important; font-size: 14px !important; font-weight: 800 !important; flex-shrink: 0 !important; box-shadow: 0 4px 12px rgba(102,126,234,0.3) !important;">${i + 1}</span>
-            <span style="font-size: 16px !important; line-height: 1.6 !important; padding-top: 6px !important; color: #374151 !important;">${escapeHtml(t)}</span>
+        <li style="display: flex !important; align-items: flex-start !important; gap: 18px !important; padding: 20px 0 !important; ${i < takeaways.length - 1 ? `border-bottom: 1px solid ${TOKENS.colors.primaryBorder} !important;` : ''}">
+            <span style="min-width: 40px !important; height: 40px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; color: ${TOKENS.colors.white} !important; font-size: 15px !important; font-weight: 900 !important; box-shadow: ${TOKENS.shadows.primary} !important; flex-shrink: 0 !important;">${i + 1}</span>
+            <span style="font-size: 16px !important; line-height: 1.7 !important; color: ${TOKENS.colors.gray700} !important; padding-top: 8px !important;">${escapeHtml(t)}</span>
         </li>
     `).join('');
 
     return `
-<div class="wpo-box" style="background: linear-gradient(135deg, rgba(102,126,234,0.08) 0%, rgba(118,75,162,0.04) 100%) !important; border: 2px solid rgba(99,102,241,0.15) !important; border-radius: 24px !important; padding: 36px !important; margin: 48px 0 !important;">
-    <div style="display: flex !important; align-items: center !important; gap: 18px !important; margin-bottom: 28px !important; padding-bottom: 24px !important; border-bottom: 2px solid rgba(99,102,241,0.1) !important; flex-wrap: wrap !important;">
-        <div style="width: 60px !important; height: 60px !important; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; border-radius: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 12px 24px rgba(102,126,234,0.3) !important;">
-            <span style="font-size: 28px !important;">🎯</span>
+<div style="background: linear-gradient(135deg, ${TOKENS.colors.primaryBg} 0%, ${TOKENS.colors.primaryBorder}50 100%) !important; border: 2px solid ${TOKENS.colors.primaryBorder} !important; border-radius: ${TOKENS.radius.xxl} !important; padding: 40px !important; margin: 56px 0 !important; box-shadow: ${TOKENS.shadows.md} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: center !important; gap: 20px !important; margin-bottom: 32px !important; padding-bottom: 28px !important; border-bottom: 2px solid ${TOKENS.colors.primaryBorder} !important; flex-wrap: wrap !important;">
+        <div style="width: 68px !important; height: 68px !important; min-width: 68px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.xl} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important;">
+            <span style="font-size: 34px !important;">🎯</span>
         </div>
         <div>
-            <h3 style="font-size: 22px !important; font-weight: 800 !important; margin: 0 !important; color: #111827 !important;">Key Takeaways</h3>
-            <p style="font-size: 14px !important; color: #6b7280 !important; margin: 4px 0 0 0 !important;">Remember these crucial points</p>
+            <h3 style="font-size: 26px !important; font-weight: 800 !important; margin: 0 !important; color: #3730a3 !important;">Key Takeaways</h3>
+            <p style="font-size: 15px !important; color: ${TOKENS.colors.gray500} !important; margin: 6px 0 0 0 !important;">The essential points to remember</p>
         </div>
     </div>
     <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important;">${items}</ul>
@@ -504,69 +615,94 @@ export function createKeyTakeaways(takeaways: string[]): string {
 }
 
 export function createFAQAccordion(faqs: Array<{ question: string; answer: string }>): string {
-    if (!faqs || faqs.length === 0) return '';
+    if (!isValidArray(faqs)) return '';
     
-    const sectionId = generateUniqueId();
+    const validFaqs = faqs.filter(f => isValidString(f.question) && isValidString(f.answer));
+    if (validFaqs.length === 0) return '';
     
-    const faqItems = faqs.map((faq) => {
-        return `
-        <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border: 1px solid rgba(128,128,128,0.12) !important; border-radius: 12px !important; margin-bottom: 12px !important; overflow: hidden !important; background: white !important;">
-            <summary style="padding: 20px 24px !important; cursor: pointer !important; font-weight: 600 !important; font-size: 16px !important; list-style: none !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 16px !important;" itemprop="name">
-                <span style="flex: 1 !important; line-height: 1.4 !important;">${escapeHtml(faq.question)}</span>
-                <span style="font-size: 14px !important; color: #6366f1 !important; flex-shrink: 0 !important;">▼</span>
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": validFaqs.map(faq => ({
+            "@type": "Question",
+            "name": faq.question,
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.answer.replace(/<[^>]*>/g, '')
+            }
+        }))
+    };
+    
+    const items = validFaqs.map(faq => `
+        <details style="border: 1px solid ${TOKENS.colors.gray200} !important; border-radius: ${TOKENS.radius.md} !important; margin-bottom: 14px !important; background: ${TOKENS.colors.white} !important; overflow: hidden !important;" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary style="padding: 20px 24px !important; cursor: pointer !important; font-weight: 700 !important; font-size: 16px !important; color: ${TOKENS.colors.gray800} !important; list-style: none !important; display: flex !important; justify-content: space-between !important; align-items: center !important; background: ${TOKENS.colors.white} !important;" itemprop="name">
+                <span style="flex: 1 !important; padding-right: 18px !important; line-height: 1.4 !important;">${escapeHtml(faq.question)}</span>
+                <span style="width: 32px !important; height: 32px !important; border-radius: ${TOKENS.radius.full} !important; background: ${TOKENS.colors.gray100} !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 12px !important; color: ${TOKENS.colors.primary} !important; flex-shrink: 0 !important; transition: transform 0.2s ease !important;">▼</span>
             </summary>
-            <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer" style="padding: 20px 24px !important; font-size: 15px !important; line-height: 1.8 !important; color: #374151 !important; background: rgba(99,102,241,0.03) !important; border-top: 1px solid rgba(128,128,128,0.1) !important;">
-                <div itemprop="text">${faq.answer}</div>
+            <div style="padding: 0 24px 24px 24px !important; font-size: 15px !important; line-height: 1.8 !important; color: ${TOKENS.colors.gray600} !important; background: ${TOKENS.colors.gray50} !important; border-top: 1px solid ${TOKENS.colors.gray200} !important;" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                <div itemprop="text" style="padding-top: 20px !important;">${faq.answer}</div>
             </div>
-        </details>`;
-    }).join('');
+        </details>
+    `).join('');
 
     return `
-<section id="${sectionId}" itemscope itemtype="https://schema.org/FAQPage" style="margin: 56px 0 !important;">
-    <div style="display: flex !important; align-items: center !important; gap: 16px !important; margin-bottom: 28px !important; flex-wrap: wrap !important;">
-        <div style="width: 56px !important; height: 56px !important; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 8px 24px rgba(99,102,241,0.25) !important;">
-            <span style="font-size: 26px !important;">❓</span>
+<script type="application/ld+json">${JSON.stringify(faqSchema)}</script>
+<section itemscope itemtype="https://schema.org/FAQPage" style="margin: 56px 0 !important;">
+    <div style="display: flex !important; align-items: center !important; gap: 18px !important; margin-bottom: 32px !important; flex-wrap: wrap !important;">
+        <div style="width: 64px !important; height: 64px !important; min-width: 64px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.xl} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important;">
+            <span style="font-size: 30px !important;">❓</span>
         </div>
         <div>
-            <h2 style="font-size: 24px !important; font-weight: 800 !important; margin: 0 !important; color: #111827 !important;">Frequently Asked Questions</h2>
-            <p style="font-size: 14px !important; color: #6b7280 !important; margin: 4px 0 0 0 !important;">${faqs.length} questions answered</p>
+            <h2 style="font-size: 26px !important; font-weight: 800 !important; margin: 0 !important; color: ${TOKENS.colors.gray800} !important;">Frequently Asked Questions</h2>
+            <p style="font-size: 15px !important; color: ${TOKENS.colors.gray500} !important; margin: 6px 0 0 0 !important;">${validFaqs.length} questions answered</p>
         </div>
     </div>
-    <div>${faqItems}</div>
+    <div>${items}</div>
 </section>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🎬 YOUTUBE VIDEO EMBED
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export function createYouTubeEmbed(video: YouTubeVideoData): string {
-    if (!video || !video.videoId) {
+    if (!video?.videoId) {
         console.error('[WPO] createYouTubeEmbed: Missing videoId', video);
         return '';
     }
     
+    const titleEscaped = escapeHtml(video.title || 'Watch Video');
+    
+    const videoSchema = {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "name": video.title || 'Video',
+        "description": video.description || `Video about ${video.title}`,
+        "thumbnailUrl": [`https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`],
+        "uploadDate": new Date().toISOString().split('T')[0],
+        "embedUrl": `https://www.youtube.com/embed/${video.videoId}`,
+        "contentUrl": `https://www.youtube.com/watch?v=${video.videoId}`
+    };
+    
     return `
-<div class="wpo-box" style="margin: 48px 0 !important; border-radius: 20px !important; overflow: hidden !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; background: #000 !important;">
-    <div style="position: relative !important; padding-bottom: 56.25% !important; height: 0 !important; overflow: hidden !important;">
+<script type="application/ld+json">${JSON.stringify(videoSchema)}</script>
+<div style="margin: 52px 0 !important; border-radius: ${TOKENS.radius.xl} !important; overflow: hidden !important; box-shadow: ${TOKENS.shadows.xl} !important; border: none !important; background: #000 !important;">
+    <div class="wpo-video-wrap" style="position: relative !important; padding-bottom: 56.25% !important; height: 0 !important; overflow: hidden !important; background: #000 !important;">
         <iframe 
-            src="https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1" 
-            title="${escapeHtml(video.title)}"
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            src="https://www.youtube.com/embed/${video.videoId}?rel=0&modestbranding=1&enablejsapi=1"
+            srcdoc="<style>*{padding:0;margin:0;overflow:hidden}html,body{height:100%}img,span{position:absolute;width:100%;top:0;bottom:0;margin:auto}span{height:80px;width:80px;background:rgba(255,0,0,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;left:50%;transform:translateX(-50%)}</style><a href='https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0&modestbranding=1'><img src='https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg' alt='${titleEscaped}'><span style='font-size:36px;color:white'>▶</span></a>"
+            title="${titleEscaped}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowfullscreen
             loading="lazy"
             style="position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: none !important;"
         ></iframe>
     </div>
-    <div style="padding: 20px 24px !important; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;">
-        <div style="display: flex !important; align-items: center !important; gap: 14px !important; flex-wrap: wrap !important;">
-            <div style="width: 48px !important; height: 48px !important; background: #ff0000 !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;">
-                <span style="font-size: 22px !important;">▶️</span>
+    <div style="padding: 22px 28px !important; background: ${TOKENS.gradients.midnight} !important;">
+        <div style="display: flex !important; align-items: center !important; gap: 18px !important; flex-wrap: wrap !important;">
+            <div style="width: 54px !important; height: 54px !important; min-width: 54px !important; background: #ff0000 !important; border-radius: ${TOKENS.radius.md} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 6px 16px rgba(255,0,0,0.3) !important;">
+                <span style="font-size: 26px !important;">▶️</span>
             </div>
             <div style="flex: 1 !important; min-width: 200px !important;">
-                <h4 style="font-size: 15px !important; font-weight: 700 !important; margin: 0 0 4px 0 !important; line-height: 1.3 !important; color: white !important;">${escapeHtml(video.title)}</h4>
-                <div style="display: flex !important; align-items: center !important; gap: 12px !important; font-size: 12px !important; color: rgba(255,255,255,0.7) !important; flex-wrap: wrap !important;">
+                <h4 style="font-size: 17px !important; font-weight: 700 !important; margin: 0 0 8px 0 !important; color: ${TOKENS.colors.white} !important; line-height: 1.4 !important;">${escapeHtml(truncate(video.title, 60))}</h4>
+                <div style="display: flex !important; gap: 18px !important; flex-wrap: wrap !important; font-size: 13px !important; color: rgba(255,255,255,0.75) !important;">
                     <span>📺 ${escapeHtml(video.channel)}</span>
                     <span>👁️ ${video.views?.toLocaleString() || 0} views</span>
                     ${video.duration ? `<span>⏱️ ${escapeHtml(video.duration)}</span>` : ''}
@@ -577,46 +713,47 @@ export function createYouTubeEmbed(video: YouTubeVideoData): string {
 </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📚 REFERENCES SECTION
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export function createReferencesSection(references: DiscoveredReference[]): string {
-    if (!references || references.length === 0) return '';
+    if (!isValidArray(references)) return '';
     
-    const refItems = references.slice(0, 10).map((ref, i) => {
-        const domain = extractDomain(ref.url);
+    const validRefs = references.filter(r => isValidString(r.url) && isValidString(r.title)).slice(0, 10);
+    if (validRefs.length === 0) return '';
+    
+    const items = validRefs.map((ref, i) => {
         const yearDisplay = ref.year ? ` (${ref.year})` : '';
+        const authorityBadge = (ref.authorityScore && ref.authorityScore >= 80) 
+            ? `<span style="background: ${TOKENS.colors.successBg} !important; color: ${TOKENS.colors.successDark} !important; padding: 3px 10px !important; border-radius: 6px !important; font-size: 10px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; margin-left: 10px !important;">HIGH AUTHORITY</span>` 
+            : '';
         
         return `
-        <li style="display: flex !important; align-items: flex-start !important; gap: 14px !important; padding: 16px 0 !important; ${i < references.length - 1 ? 'border-bottom: 1px solid rgba(128,128,128,0.08) !important;' : ''}">
-            <div style="flex-shrink: 0 !important; width: 28px !important; height: 28px !important; background: rgba(99,102,241,0.1) !important; border-radius: 8px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 12px !important; font-weight: 700 !important; color: #6366f1 !important;">${i + 1}</div>
+        <li style="display: flex !important; align-items: flex-start !important; gap: 16px !important; padding: 18px 0 !important; ${i < validRefs.length - 1 ? `border-bottom: 1px solid ${TOKENS.colors.gray100} !important;` : ''}">
+            <span style="min-width: 32px !important; height: 32px !important; background: ${TOKENS.colors.primaryBg} !important; border-radius: ${TOKENS.radius.sm} !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 13px !important; font-weight: 800 !important; color: ${TOKENS.colors.primary} !important; flex-shrink: 0 !important;">${i + 1}</span>
             <div style="flex: 1 !important; min-width: 0 !important;">
-                <a href="${escapeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" style="font-size: 15px !important; font-weight: 600 !important; color: #6366f1 !important; text-decoration: none !important; line-height: 1.4 !important; display: block !important; margin-bottom: 4px !important;">
-                    ${escapeHtml(ref.title)}${yearDisplay}
+                <a href="${escapeHtml(ref.url)}" target="_blank" rel="noopener noreferrer nofollow" style="font-weight: 700 !important; color: ${TOKENS.colors.primary} !important; text-decoration: none !important; display: block !important; margin-bottom: 6px !important; font-size: 16px !important; line-height: 1.4 !important;">
+                    ${escapeHtml(truncate(ref.title, 80))}${yearDisplay}
                 </a>
-                <div style="display: flex !important; align-items: center !important; gap: 8px !important; font-size: 12px !important; opacity: 0.6 !important; flex-wrap: wrap !important;">
-                    ${ref.favicon ? `<img src="${escapeHtml(ref.favicon)}" alt="" width="14" height="14" style="border-radius: 3px !important;" onerror="this.style.display='none'">` : ''}
-                    <span>${escapeHtml(ref.source || domain)}</span>
-                    ${ref.authorityScore >= 80 ? '<span style="background: rgba(16,185,129,0.15) !important; color: #10b981 !important; padding: 2px 6px !important; border-radius: 4px !important; font-size: 10px !important; font-weight: 600 !important;">HIGH AUTHORITY</span>' : ''}
+                <div style="display: flex !important; align-items: center !important; gap: 10px !important; flex-wrap: wrap !important; font-size: 13px !important; color: ${TOKENS.colors.gray500} !important;">
+                    ${ref.favicon ? `<img src="${escapeHtml(ref.favicon)}" alt="" width="16" height="16" style="border-radius: 4px !important;" onerror="this.style.display='none'">` : ''}
+                    <span>${escapeHtml(ref.source)}</span>
+                    ${authorityBadge}
                 </div>
-                ${ref.snippet ? `<p style="font-size: 13px !important; line-height: 1.5 !important; margin: 8px 0 0 0 !important; opacity: 0.7 !important;">${escapeHtml(ref.snippet.substring(0, 150))}...</p>` : ''}
+                ${ref.snippet ? `<p style="font-size: 14px !important; line-height: 1.6 !important; margin: 10px 0 0 0 !important; color: ${TOKENS.colors.gray500} !important;">${escapeHtml(truncate(ref.snippet, 150))}</p>` : ''}
             </div>
         </li>`;
     }).join('');
 
     return `
-<section class="wpo-box" style="background: linear-gradient(135deg, rgba(99,102,241,0.04) 0%, rgba(139,92,246,0.02) 100%) !important; border: 1px solid rgba(99,102,241,0.1) !important; border-radius: 20px !important; padding: 28px !important; margin: 48px 0 !important;">
-    <div style="display: flex !important; align-items: center !important; gap: 14px !important; margin-bottom: 24px !important; padding-bottom: 20px !important; border-bottom: 1px solid rgba(99,102,241,0.1) !important; flex-wrap: wrap !important;">
-        <div style="width: 52px !important; height: 52px !important; background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; border-radius: 14px !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: 0 8px 20px rgba(99,102,241,0.25) !important;">
-            <span style="font-size: 24px !important;">📚</span>
+<section style="background: ${TOKENS.colors.gray50} !important; border-radius: ${TOKENS.radius.xl} !important; padding: 36px !important; margin: 56px 0 !important; box-shadow: ${TOKENS.shadows.md} !important; border: 1px solid ${TOKENS.colors.gray200} !important; overflow: hidden !important;">
+    <div style="display: flex !important; align-items: center !important; gap: 18px !important; margin-bottom: 28px !important; padding-bottom: 24px !important; border-bottom: 2px solid ${TOKENS.colors.gray200} !important; flex-wrap: wrap !important;">
+        <div style="width: 60px !important; height: 60px !important; min-width: 60px !important; background: ${TOKENS.gradients.primary} !important; border-radius: ${TOKENS.radius.lg} !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: ${TOKENS.shadows.primary} !important;">
+            <span style="font-size: 28px !important;">📚</span>
         </div>
         <div>
-            <h2 style="font-size: 20px !important; font-weight: 800 !important; margin: 0 !important;">References & Sources</h2>
-            <p style="font-size: 13px !important; opacity: 0.6 !important; margin: 4px 0 0 0 !important;">${references.length} authoritative sources cited</p>
+            <h2 style="font-size: 24px !important; font-weight: 800 !important; margin: 0 !important; color: ${TOKENS.colors.gray800} !important;">References & Sources</h2>
+            <p style="font-size: 15px !important; color: ${TOKENS.colors.gray500} !important; margin: 6px 0 0 0 !important;">${validRefs.length} authoritative sources</p>
         </div>
     </div>
-    <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important;">${refItems}</ul>
+    <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important;">${items}</ul>
 </section>`;
 }
 
@@ -655,7 +792,12 @@ export async function searchYouTubeVideo(
 ): Promise<YouTubeVideoData | null> {
     log(`   🎬 Searching YouTube for: "${topic.substring(0, 50)}..."`);
     
-    const queries = [`${topic} tutorial guide`, `${topic} explained ${currentYear}`, `${topic} how to`];
+    const queries = [
+        `${topic} tutorial guide`,
+        `${topic} explained ${CONTENT_YEAR}`,
+        `${topic} how to`,
+        `best ${topic} tutorial`
+    ];
     const allVideos: YouTubeVideoData[] = [];
     
     for (const query of queries) {
@@ -680,7 +822,7 @@ export async function searchYouTubeVideo(
                 if (!videoId || allVideos.some(v => v.videoId === videoId)) continue;
                 
                 const views = parseViewCount(video.views);
-                if (views < 5000) continue; // Lower threshold to find more videos
+                if (views < 3000) continue;
                 
                 const titleLower = (video.title || '').toLowerCase();
                 const topicWords = topic.toLowerCase().split(/\s+/).filter(w => w.length > 3);
@@ -825,7 +967,7 @@ export async function discoverReferences(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 INTERNAL LINK INJECTION — SEMANTIC MATCHING ONLY
+// 🔗 INTERNAL LINK INJECTION — SEMANTIC MATCHING ONLY (NO GENERIC FALLBACK)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function injectInternalLinksDistributed(
@@ -880,7 +1022,6 @@ export function injectInternalLinksDistributed(
         let sectionLinksAdded = 0;
         let processedPart = part;
         
-        // ✅ FIXED: Reduced from 80 to 30 chars minimum
         const paraRegex = /<p[^>]*>([\s\S]{30,}?)<\/p>/gi;
         let match;
         const paragraphs: Array<{ full: string; text: string; plainText: string; pos: number }> = [];
@@ -910,7 +1051,7 @@ export function injectInternalLinksDistributed(
             const anchorText = findSemanticAnchor(para.plainText, target, log);
             
             if (anchorText && anchorText.length >= 4) {
-                const link = `<a href="${escapeHtml(target.url)}" title="${escapeHtml(target.title)}">${anchorText}</a>`;
+                const link = `<a href="${escapeHtml(target.url)}" title="${escapeHtml(target.title)}" style="color: ${TOKENS.colors.primary} !important; font-weight: 600 !important; text-decoration: underline !important; text-decoration-color: ${TOKENS.colors.primaryBorder} !important;">${anchorText}</a>`;
                 
                 const escapedAnchor = anchorText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const simpleRegex = new RegExp(`\\b${escapedAnchor}\\b`, 'i');
@@ -1060,12 +1201,12 @@ function findSemanticAnchor(text: string, target: InternalLinkTarget, log: LogFu
         }
     }
     
-    // ✅ FIXED: NO GENERIC FALLBACK — Return empty to skip irrelevant anchors
+    // ✅ NO GENERIC FALLBACK — Return empty to skip irrelevant anchors
     return '';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔍 JSON HEALING
+// 🔍 JSON HEALING (5-Strategy Recovery)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function healJSON(rawText: string, log: LogFunction): { success: boolean; data?: any; error?: string } {
@@ -1073,11 +1214,13 @@ function healJSON(rawText: string, log: LogFunction): { success: boolean; data?:
     
     let text = rawText.trim();
     
+    // Strategy 1: Direct parse
     try {
         const parsed = JSON.parse(text);
         if (parsed.htmlContent) return { success: true, data: parsed };
     } catch {}
     
+    // Strategy 2: Extract from markdown code block
     const jsonBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonBlockMatch) {
         try {
@@ -1089,6 +1232,7 @@ function healJSON(rawText: string, log: LogFunction): { success: boolean; data?:
         } catch {}
     }
     
+    // Strategy 3: Find JSON by boundaries
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace > firstBrace) {
@@ -1101,6 +1245,7 @@ function healJSON(rawText: string, log: LogFunction): { success: boolean; data?:
         } catch {}
     }
     
+    // Strategy 4: Fix trailing commas
     let fixed = text.replace(/,(\s*[}\]])/g, '$1');
     try {
         const parsed = JSON.parse(fixed);
@@ -1110,6 +1255,7 @@ function healJSON(rawText: string, log: LogFunction): { success: boolean; data?:
         }
     } catch {}
     
+    // Strategy 5: Close unclosed brackets
     const ob = (text.match(/\{/g) || []).length;
     const cb = (text.match(/\}/g) || []).length;
     if (ob > cb) {
@@ -1169,7 +1315,7 @@ OUTPUT: Valid JSON only:
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🔌 LLM CALLERS
+// 🔌 LLM CALLERS (Multi-Provider Support)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function callLLM(
@@ -1307,25 +1453,26 @@ function removeAllH1Tags(html: string, log: LogFunction): string {
 class AIOrchestrator {
     
     // ═══════════════════════════════════════════════════════════════════════════════
-    // 🎯 SINGLE-SHOT GENERATION v33.0 — ALL BUGS FIXED
+    // 🎯 SINGLE-SHOT GENERATION v36.0 — ULTIMATE ENTERPRISE EDITION
     // ═══════════════════════════════════════════════════════════════════════════════
 
     async generateSingleShot(config: GenerateConfig, log: LogFunction): Promise<GenerationResult> {
         const startTime = Date.now();
-        log(`🎨 SINGLE-SHOT GENERATION v33.0 (ALL BUGS FIXED)`);
+        log(`🚀 ENTERPRISE PIPELINE v${AI_ORCHESTRATOR_VERSION}`);
+        log(`   → Topic: "${config.topic.substring(0, 50)}..."`);
+        log(`   → Provider: ${config.provider} | Model: ${config.model}`);
         
-        // ✅ CRITICAL: Initialize these BEFORE the promises
+        // ✅ CRITICAL: Initialize BEFORE the promises
         let youtubeVideo: YouTubeVideoData | null = null;
         let references: DiscoveredReference[] = [];
         
         // ═══════════════════════════════════════════════════════════════
-        // STEP 1: START PARALLEL TASKS
+        // PHASE 1: PARALLEL ASSET DISCOVERY
         // ═══════════════════════════════════════════════════════════════
 
-        log(`   🔍 Starting parallel discovery...`);
-        log(`   📋 Serper API: ${config.apiKeys?.serper ? '✅ (' + config.apiKeys.serper.substring(0, 8) + '...)' : '❌ MISSING'}`);
+        log(`🔍 Phase 1: Asset Discovery (Parallel)`);
+        log(`   📋 Serper API: ${config.apiKeys?.serper ? '✅' : '❌ MISSING'}`);
 
-        // ✅ FIXED: Use Promise.allSettled for robust error handling
         const youtubePromise = config.apiKeys?.serper 
             ? searchYouTubeVideo(config.topic, config.apiKeys.serper, log)
             : Promise.resolve(null);
@@ -1352,8 +1499,10 @@ class AIOrchestrator {
         })() : Promise.resolve([]);
         
         // ═══════════════════════════════════════════════════════════════
-        // STEP 2: GENERATE CONTENT
+        // PHASE 2: CONTENT GENERATION
         // ═══════════════════════════════════════════════════════════════
+        
+        log(`📝 Phase 2: Content Generation`);
         
         const humanPrompt = `You're writing like Alex Hormozi meets Tim Ferriss. Punchy, personal, valuable.
 
@@ -1394,7 +1543,7 @@ OUTPUT (VALID JSON ONLY):
             try {
                 const response = await callLLM(
                     config.provider, config.apiKeys, config.model, humanPrompt,
-                    'You are an elite content creator. Never sound formal or robotic.',
+                    buildSystemPrompt({ topic: config.topic, targetWords: CONTENT_TARGETS.TARGET_WORDS }),
                     { temperature: 0.78 + (attempt - 1) * 0.04, maxTokens: 16000 },
                     TIMEOUTS.SINGLE_SHOT, log
                 );
@@ -1405,18 +1554,17 @@ OUTPUT (VALID JSON ONLY):
                     const rawContract = parsed.data as ContentContract;
                     
                     // ═══════════════════════════════════════════════════════════
-                    // STEP 3: WAIT FOR BOTH PARALLEL TASKS — CRITICAL FIX!
+                    // PHASE 3: AWAIT PARALLEL TASKS — CRITICAL!
                     // ═══════════════════════════════════════════════════════════
                     
-                    log(`   ⏳ Waiting for YouTube & References...`);
+                    log(`⏳ Phase 3: Awaiting Parallel Tasks...`);
                     
                     // ✅ FIXED: Use Promise.allSettled + explicit reassignment
                     const [ytResult, refResult] = await Promise.allSettled([youtubePromise, referencesPromise]);
                     
-                    // ✅ FIXED: Explicitly reassign the results
                     if (ytResult.status === 'fulfilled' && ytResult.value) {
                         youtubeVideo = ytResult.value;
-                        log(`   ✅ YouTube FOUND: "${youtubeVideo.title?.substring(0, 40)}..." (videoId: ${youtubeVideo.videoId})`);
+                        log(`   ✅ YouTube: "${youtubeVideo.title?.substring(0, 40)}..." (videoId: ${youtubeVideo.videoId})`);
                     } else {
                         log(`   ⚠️ YouTube: ${ytResult.status === 'rejected' ? ytResult.reason : 'No video found'}`);
                     }
@@ -1426,20 +1574,17 @@ OUTPUT (VALID JSON ONLY):
                         log(`   ✅ References: ${references.length} sources`);
                     }
                     
-                    log(`   📊 Final parallel results:`);
-                    log(`      → YouTube: ${youtubeVideo ? '✅ videoId=' + youtubeVideo.videoId : '❌ null'}`);
-                    log(`      → References: ${references.length} sources`);
-                    
                     // ═══════════════════════════════════════════════════════════
-                    // STEP 4: BUILD CONTENT WITH 25+ VISUAL COMPONENTS
+                    // PHASE 4: CONTENT ENRICHMENT (25+ Visual Components)
                     // ═══════════════════════════════════════════════════════════
                     
-                    log(`   🎨 Building content with 25+ visual components...`);
+                    log(`🎨 Phase 4: Content Enrichment`);
                     
                     const contentParts: string[] = [];
                     
+                    // CSS + Root Wrapper
                     contentParts.push(THEME_ADAPTIVE_CSS);
-                    contentParts.push('<div class="wpo-content">');
+                    contentParts.push('<div id="wpo-engine-root">');
                     
                     // VISUAL 1: Quick Answer Box
                     contentParts.push(createQuickAnswerBox(
@@ -1464,7 +1609,7 @@ OUTPUT (VALID JSON ONLY):
                     mainContent = mainContent.replace(/\n{4,}/g, '\n\n');
                     
                     // ═══════════════════════════════════════════════════════════
-                    // STEP 5: EXTRACT H2 SECTIONS — FIXED METHOD (split)
+                    // EXTRACT H2 SECTIONS — FIXED METHOD (split)
                     // ═══════════════════════════════════════════════════════════
                     
                     const h2SplitRegex = /(<h2[^>]*>)/gi;
@@ -1484,38 +1629,27 @@ OUTPUT (VALID JSON ONLY):
                         }
                     }
                     
-                    log(`   📊 Content structure:`);
-                    log(`      → Intro: ${introContent.length} chars`);
-                    log(`      → H2 sections: ${h2Sections.length}`);
+                    log(`   📊 Content structure: ${h2Sections.length} H2 sections`);
                     
                     // Add intro
                     if (introContent.trim()) {
                         contentParts.push(introContent);
                     }
                     
-                    // ═══════════════════════════════════════════════════════════
                     // VISUAL 3: YouTube Video — AFTER intro, AFTER await
-                    // ═══════════════════════════════════════════════════════════
-                    
-                    log(`   🎬 YouTube embed check: youtubeVideo=${youtubeVideo ? 'EXISTS' : 'NULL'}, videoId=${youtubeVideo?.videoId || 'N/A'}`);
-                    
                     if (youtubeVideo && youtubeVideo.videoId) {
                         const ytEmbed = createYouTubeEmbed(youtubeVideo);
                         if (ytEmbed) {
                             contentParts.push(ytEmbed);
-                            log(`   ✅ YouTube EMBEDDED: ${youtubeVideo.title?.substring(0, 40)}`);
+                            log(`   ✅ YouTube EMBEDDED`);
                         }
-                    } else {
-                        log(`   ⚠️ No YouTube video to embed`);
                     }
                     
                     // ═══════════════════════════════════════════════════════════
-                    // STEP 6: CONTENT BREATHING ENGINE — 25+ VISUALS
+                    // CONTENT BREATHING ENGINE — 25+ VISUALS
                     // ═══════════════════════════════════════════════════════════
                     
                     if (h2Sections.length > 0) {
-                        log(`   🎨 Injecting visuals into ${h2Sections.length} sections...`);
-                        
                         const proTips = [
                             `The first 30 days are hardest. Push through that resistance and everything changes.`,
                             `Done beats perfect. Ship fast, learn faster, iterate constantly.`,
@@ -1545,7 +1679,7 @@ OUTPUT (VALID JSON ONLY):
                         h2Sections.forEach((section, idx) => {
                             contentParts.push(section);
                             
-                            // Section 0: Info callout + Highlight
+                            // Inject visuals based on section index
                             if (idx === 0) {
                                 contentParts.push(createCalloutBox(`Bookmark this page. You'll want to come back as you implement.`, 'info'));
                                 if (highlightIdx < highlights.length) {
@@ -1554,7 +1688,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 1: Data table + Pro tip
                             if (idx === 1) {
                                 contentParts.push(createDataTable(
                                     `${config.topic} — Key Statistics`,
@@ -1572,7 +1705,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 2: Expert quote + Highlight
                             if (idx === 2) {
                                 if (quoteIdx < expertQuotes.length) {
                                     const q = expertQuotes[quoteIdx++];
@@ -1584,7 +1716,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 3: Warning + Success callout + Pro tip
                             if (idx === 3) {
                                 contentParts.push(createWarningBox(
                                     `Biggest mistake? Trying to do everything at once. Pick ONE strategy, master it.`,
@@ -1596,7 +1727,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 4: Checklist + Expert quote
                             if (idx === 4) {
                                 contentParts.push(createChecklistBox('Quick Action Checklist', [
                                     'Implement the first strategy TODAY',
@@ -1611,7 +1741,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 5: Step-by-step + Highlight
                             if (idx === 5) {
                                 contentParts.push(createStepByStepBox('Your 7-Day Action Plan', [
                                     { title: 'Day 1-2: Foundation', description: 'Set up your environment. Get clear on your ONE goal.' },
@@ -1625,7 +1754,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 6: Statistics + Pro tip
                             if (idx === 6) {
                                 contentParts.push(createStatisticsBox([
                                     { value: '87%', label: 'Completion Rate', icon: '📚' },
@@ -1637,7 +1765,6 @@ OUTPUT (VALID JSON ONLY):
                                 }
                             }
                             
-                            // Section 7: Warning callout + Checklist
                             if (idx === 7) {
                                 contentParts.push(createCalloutBox(`Don't skip ahead. Master each section first.`, 'warning'));
                                 contentParts.push(createChecklistBox('Advanced Checklist', [
@@ -1648,30 +1775,13 @@ OUTPUT (VALID JSON ONLY):
                                 ]));
                             }
                             
-                            // Section 8+: Expert quotes and highlights
-                            if (idx === 8) {
-                                if (quoteIdx < expertQuotes.length) {
-                                    const q = expertQuotes[quoteIdx++];
-                                    contentParts.push(createExpertQuoteBox(q.quote, q.author, q.title));
-                                }
-                                if (highlightIdx < highlights.length) {
-                                    contentParts.push(createHighlightBox(highlights[highlightIdx].text, highlights[highlightIdx].icon, highlights[highlightIdx].color));
-                                    highlightIdx++;
-                                }
-                            }
-                            
-                            // Pro tips for remaining sections
-                            if (idx >= 9 && tipIdx < proTips.length) {
+                            if (idx >= 8 && tipIdx < proTips.length) {
                                 contentParts.push(createProTipBox(proTips[tipIdx++], '💡 Pro Tip'));
                             }
                         });
-                        
-                        log(`   ✅ ${h2Sections.length} sections processed with visuals`);
                     } else {
-                        log(`   ⚠️ No H2 sections found — using fallback`);
                         contentParts.push(mainContent);
                         contentParts.push(createProTipBox(`Take one thing and implement it today.`, '💡 Take Action'));
-                        contentParts.push(createHighlightBox(`Action beats perfection. Start now.`, '🚀', '#6366f1'));
                     }
                     
                     // Definition Box
@@ -1712,10 +1822,10 @@ OUTPUT (VALID JSON ONLY):
                         }
                     } else {
                         const defaultFaqs = [
-                            { question: `What is ${config.topic}?`, answer: `A systematic approach to achieving goals through proven methods.` },
-                            { question: `How long to see results?`, answer: `Most see initial results within 30-90 days of consistent effort.` },
-                            { question: `Common mistakes?`, answer: `Trying too much at once, not tracking, giving up early.` },
-                            { question: `Do I need special tools?`, answer: `Start with basics. Fundamentals work regardless of tools.` }
+                            { question: `What is ${config.topic}?`, answer: `A systematic approach to achieving goals through proven methods and consistent execution.` },
+                            { question: `How long does it take to see results?`, answer: `Most people see initial results within 30-90 days of consistent effort.` },
+                            { question: `What are the most common mistakes?`, answer: `Trying too much at once, not tracking progress, and giving up too early.` },
+                            { question: `Do I need special tools to get started?`, answer: `Start with basics. Fundamentals work regardless of tools.` }
                         ];
                         contentParts.push(createFAQAccordion(defaultFaqs));
                     }
@@ -1741,11 +1851,11 @@ OUTPUT (VALID JSON ONLY):
                     let assembledContent = contentParts.filter(Boolean).join('\n\n');
                     
                     // ═══════════════════════════════════════════════════════════
-                    // STEP 7: INTERNAL LINKS
+                    // PHASE 5: INTERNAL LINKS
                     // ═══════════════════════════════════════════════════════════
                     
                     if (config.internalLinks?.length > 0) {
-                        log(`   🔗 Injecting ${config.internalLinks.length} internal links...`);
+                        log(`🔗 Phase 5: Internal Link Injection`);
                         
                         const linkResult = injectInternalLinksDistributed(
                             assembledContent,
@@ -1764,15 +1874,16 @@ OUTPUT (VALID JSON ONLY):
                         wordCount: countWords(assembledContent)
                     };
                     
-                    log(`   📊 Final: ${finalContract.wordCount} words`);
+                    log(`📊 Final: ${finalContract.wordCount} words`);
                     
                     if (finalContract.wordCount >= 2000) {
-                        log(`   ✅ SUCCESS in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+                        const totalTime = Date.now() - startTime;
+                        log(`🎉 SUCCESS in ${(totalTime / 1000).toFixed(1)}s`);
                         return { 
                             contract: finalContract, 
                             generationMethod: 'single-shot', 
                             attempts: attempt, 
-                            totalTime: Date.now() - startTime,
+                            totalTime,
                             youtubeVideo: youtubeVideo || undefined,
                             references
                         };
