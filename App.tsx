@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// WP OPTIMIZER PRO v39.0 — MAIN APPLICATION COMPONENT
+// WP OPTIMIZER PRO v39.0 — MAIN APPLICATION COMPONENT 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
