@@ -1767,7 +1767,7 @@ OUTPUT: HTML only, starting with <h2>Conclusion</h2>.`;
             log(`   → Falling back to single-shot...`);
             return this.generateSingleShot(config, log);
         }
-    }
+    } 
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // 🎯 SINGLE-SHOT GENERATION v29.0 — ALL BUGS FIXED
