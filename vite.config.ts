@@ -1,26 +1,23 @@
-import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-    server: {
-        port: 3000,
-        host: '0.0.0.0',
-        open: true,
-        cors: true
-    },
-    plugins: [react()],
-    resolve: {
-        alias: {
-            '@': fileURLToPath(new URL('.', import.meta.url))
+  plugins: [react()],
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ai: ['@google/genai']
         }
-    },
-    build: {
-        target: 'esnext',
-        minify: 'esbuild',
-        sourcemap: false
-    },
-    optimizeDeps: {
-        include: ['react', 'react-dom', 'zustand', 'immer', '@google/genai']
+      }
     }
+  },
+  server: {
+    port: 3000,
+    open: true
+  }
 });
