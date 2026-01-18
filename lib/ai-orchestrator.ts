@@ -16,7 +16,8 @@
 // ✅ Percentage-based visual injection
 // ═══════════════════════════════════════════════════════════════════════════════
 
-'@google/generative-ai'import {
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import {    
     ContentContract,
     GenerateConfig,
     InternalLinkTarget,
