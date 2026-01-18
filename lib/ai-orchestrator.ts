@@ -16,8 +16,7 @@
 // ✅ Percentage-based visual injection
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { GoogleGenAI } from '@google/genai';
-import {
+'@google/generative-ai'import {
     ContentContract,
     GenerateConfig,
     InternalLinkTarget,
@@ -1501,7 +1500,7 @@ async function callLLM(
 
         switch (provider) {
             case 'google':
-                const ai = new GoogleGenAI({ apiKey: apiKeys.google });
+                const ai = new GoogleGenerativeAI({ apiKey: apiKeys.google });
                 const geminiResponse = await ai.models.generateContent({
                     model: model || 'gemini-2.5-flash-preview-05-20',
                     contents: userPrompt,
