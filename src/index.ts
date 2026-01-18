@@ -183,11 +183,11 @@ export default {
   VERSION,
   APP_NAME,
   DEFAULT_CONFIG,
-  apiService,
-  contentEngine,
-  store,
-  actions,
-  selectors,
+  apiService: apiService
+  contentEngine: contentEngine
+  store: store
+  actions: actions
+  selectors: selectors
   initialize,
   generateContent,
 };
