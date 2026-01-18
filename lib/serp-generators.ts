@@ -9,7 +9,7 @@
 // • Quick Answer Boxes
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { 
     EntityGapAnalysis, FAQItem, ValidatedReference, SerpFeature, ApiKeys 
 } from '../types';
@@ -77,7 +77,7 @@ async function callAI(
         jsonMode = false,
     } = options;
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = GoogleGenerativeAI({ apiKey });
     
     const config: any = {
         temperature,
@@ -556,3 +556,4 @@ export default {
     generateSERPTargetedContent,
     insertSERPBlocks,
 };
+
