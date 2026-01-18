@@ -383,20 +383,18 @@ export default function App() {
             topic: topic.trim(),
             provider,
             model,
-            apiKeys: {
-                google: apiKeys.google || '',
-                        openrouter: apiKeys.openrouter || '',
-                
+            apiKeys: {      apiKeys: {
+        google: apiKeys.google || '',
+        openrouter: apiKeys.openrouter || '',
         openrouterModel: apiKeys.openrouterModel || '',
-                        openai: apiKeys.openai,
-                
+        openai: apiKeys.openai,
         anthropic: apiKeys.anthropic,
-                
-                groq: apiKeys.groq,
-                        groqModel: apiKeys.groqModel || '',
-                        serper: apiKeys.serper || '', // CRITICAL: Pass Serper key!
-            internalLinks: internalLinks.length > 0 ? internalLinks : undefined,
-        };
+        groq: apiKeys.groq,
+        groqModel: apiKeys.groqModel || '',
+        serper: apiKeys.serper || '', // CRITICAL: Pass Serper key!
+      },
+      internalLinks: internalLinks.length > 0 ? internalLinks : undefined,
+    };
         
         try {
             const generationResult = await orchestrator.generate(
