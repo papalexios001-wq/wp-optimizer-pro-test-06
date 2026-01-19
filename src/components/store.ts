@@ -41,6 +41,8 @@ interface AppState {
   // Optimization settings
   optimizationMode: 'surgical' | 'full' | 'balanced';
   setOptimizationMode: (mode: 'surgical' | 'full' | 'balanced') => void;
+    customModel: string;
+  setCustomModel: (model: string) => void;
   
   // Site context
   siteContext: SiteContext;
@@ -87,6 +89,10 @@ export const useAppStore = create<AppState>()(  persist(
       // Initial optimization settings
       optimizationMode: 'balanced',
       setOptimizationMode: (optimizationMode) => set({ optimizationMode }),
+      
+  // Custom model for OpenRouter/Groq
+  customModel: '',
+  setCustomModel: (model: string) => set({ customModel: model }),
       
       // Initial site context
       siteContext: {
