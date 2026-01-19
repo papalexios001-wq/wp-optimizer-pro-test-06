@@ -247,6 +247,7 @@ export default function App() {
     // Provider selection
     const [provider, setProvider] = useState<'google' | 'openrouter' | 'openai' | 'anthropic' | 'groq'>('google');
     const [model, setModel] = useState('gemini-2.5-flash-preview-05-20');
+      const [customModel, setCustomModel] = useState<string>('');
     
     // Content generation
     const [topic, setTopic] = useState('');
@@ -529,6 +530,19 @@ export default function App() {
                             </select>
                         </>
                     )}
+
+                                {(provider === 'openrouter' || provider === 'groq') && (
+              <>
+                <label style={styles.label}>Custom Model (Optional)</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  placeholder="Enter any model name (e.g., deepseek/deepseek-r1)"
+                  value={customModel}
+                  onChange={(e) => setCustomModel(e.target.value)}
+                />
+              </>
+            )}
                     
                     {provider === 'openrouter' && (
                         <>
