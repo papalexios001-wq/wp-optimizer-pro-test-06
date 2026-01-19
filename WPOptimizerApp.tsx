@@ -28,6 +28,7 @@ const App = () => {
   const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
   const [rewriteMode, setRewriteMode] = useState('surgical');
   const [newTopic, setNewTopic] = useState('');
+    const [customModel, setCustomModel] = useState('');
 
   const styles = {
     container: { width: '100%', maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'system-ui', background: '#0a0a0a', color: '#e0e0e0' },
@@ -114,9 +115,19 @@ const App = () => {
           <option value="openai">OpenAI</option>
           <option value="gemini">Gemini</option>
           <option value="anthropic">Anthropic</option>
+                    <option value="openrouter">OpenRouter</option>
+          <option value="grok">Grok</option>
         </select>
         <input placeholder="API Key" type="password" value={config.googleApiKey} onChange={e => setConfig({...config, googleApiKey: e.target.value})} style={styles.input} />
-        <input placeholder="Serper API Key" type="password" value={config.serpApiKey} onChange={e => setConfig({...config, serpApiKey: e.target.value})} style={styles.input} />
+        <input placeholder="Serper API Key" type="password" value={config.
+                {(config.allInOne === 'openrouter' || config.allInOne === 'grok') && (
+          <input 
+            placeholder="Model Name (e.g., gpt-4, claude-3-opus)" 
+            value={customModel} 
+            onChange={e => setCustomModel(e.target.value)} 
+            style={styles.input} 
+          />
+        )}} onChange={e => setConfig({...config, serpApiKey: e.target.value})} style={styles.input} />
       </section>
 
       <section style={styles.section}>
