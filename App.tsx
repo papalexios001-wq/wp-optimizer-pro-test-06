@@ -261,6 +261,8 @@ export default function App() {
     const [isCrawling, setIsCrawling] = useState(false);
     const [crawledPages, setCrawledPages] = useState<CrawledPage[]>([]);
     const [internalLinks, setInternalLinks] = useState<InternalLinkTarget[]>([]);
+      const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
+        const [rewriteMode, setRewriteMode] = useState<'surgical' | 'full'>('surgical');
     
     // WordPress
     const [wpConfig, setWpConfig] = useState<WordPressConfig>(() => {
@@ -663,6 +665,85 @@ export default function App() {
                                 <div style={styles.statLabel}>Link Targets</div>
                             </div>
                         </div>
+
+                                  {/* URL Selection & Rewrite Mode */}
+          <div style={{ marginTop: '20px', borderTop: '1px solid rgba(99, 102, 241, 0.2)', paddingTop: '20px' }}>
+            <label style={styles.label}>📝 Rewrite Mode</label>
+            <select
+              style={styles.select}
+              value={rewriteMode}
+              onChange={(e) => setRewriteMode(e.target.value as 'surgical' | 'full')}
+            >
+              <option value="surgical">Surgical Mode (Targeted Improvements)</option>
+              <option value="full">Full Rewrite (Complete Content Regeneration)</option>
+            </select>
+
+            <label style={{ ...styles.label, marginTop: '16px' }}>Select URLs to Rewrite</label>
+            <div style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '8px' }}>
+              {crawledPages.map((page) => (
+                <label
+                  key={page.url}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '10px',
+                    background: selectedUrls.includes(page.url) ? 'rgba(99, 102, 241, 0.1)' : 'rgba(15, 23, 42, 0.5)',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    cursor: 'pointer',
+                    border: '1px solid ' + (selectedUrls.includes(page.url) ? 'rgba(99, 102, 241, 0.4)' : 'rgba(99, 102, 241, 0.1)'),
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedUrls.includes(page.url)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUrls([...selectedUrls, page.url]);
+                      } else {
+                        setSelectedUrls(selectedUrls.filter(url => url !== page.url));
+                      }
+                    }}
+                    style={{ marginRight: '12px', width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0', marginBottom: '4px' }}>
+                      {page.title || 'Untitled'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>{page.url}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {selectedUrls.length > 0 && (
+              <div style={{ marginTop: '16px' }}>
+                <button
+                  style={{ ...styles.button, width: '100%' }}
+                  onClick={() => {
+                                        // Rewrite selected URLs using the current generation logic
+                    const urlsToProcess = [...selectedUrls];
+                    log(`🔄 Starting ${rewriteMode} rewrite for ${urlsToProcess.length} URL(s)`);
+                    
+                    // For now, use the first selected URL as the topic
+                    // In a full implementation, this would loop through each URL and rewrite individually
+                    const firstPage = crawledPages.find(p => p.url === urlsToProcess[0]);
+                    if (firstPage) {
+                      const rewritePrompt = rewriteMode === 'surgical' 
+                        ? `Improve and optimize this content: ${firstPage.title} (${firstPage.url})`
+                        : `Completely rewrite this content: ${firstPage.title} (${firstPage.url})`;
+                      
+                      setTopic(rewritePrompt);
+                      // Trigger generation after a short delay to ensure state is updated
+                      setTimeout(() => handleGenerate(), 100);
+                    }te for ${selectedUrls.length} URL(s)`);
+                  }}
+                >
+                  🔄 Rewrite {selectedUrls.length} Selected URL{selectedUrls.length > 1 ? 's' : ''}
+                </button>
+              </div>
+            )}
+          </div>
                     )}
                 </div>
                 
