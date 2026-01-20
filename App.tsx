@@ -665,6 +665,7 @@ export default function App() {
                                 <div style={styles.statLabel}>Link Targets</div>
                             </div>
                         </div>
+                                  )}
 
                                   {/* URL Selection & Rewrite Mode */}
           <div style={{ marginTop: '20px', borderTop: '1px solid rgba(99, 102, 241, 0.2)', paddingTop: '20px' }}>
