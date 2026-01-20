@@ -737,7 +737,7 @@ export default function App() {
                       setTopic(rewritePrompt);
                       // Trigger generation after a short delay to ensure state is updated
                       setTimeout(() => handleGenerate(), 100);
-                    }te for ${selectedUrls.length} URL(s)`);
+                                        }
                   }}
                 >
                   🔄 Rewrite {selectedUrls.length} Selected URL{selectedUrls.length > 1 ? 's' : ''}
